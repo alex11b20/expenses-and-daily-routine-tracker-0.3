@@ -37,7 +37,9 @@ import {
   User,
   LogIn,
   LogOut,
-  Database
+  Database,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
 const WORLD_CURRENCIES = [
@@ -46,24 +48,7 @@ const WORLD_CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
   { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'BAM', name: 'Bosnia Convertible Mark', symbol: 'KM' },
-  { code: 'MKD', name: 'Macedonian Denar', symbol: 'den' },
-  { code: 'HRK', name: 'Croatian Kuna', symbol: 'kn' },
-  { code: 'RUB', name: 'Russian Ruble', symbol: '₽' },
-  { code: 'AED', name: 'UAE Dirham', symbol: 'AED' },
-  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
-  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
-  { code: 'TRY', name: 'Turkish Lira', symbol: '₺' },
-  { code: 'SEK', name: 'Swedish Krona', symbol: 'kr' },
-  { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr' },
-  { code: 'DKK', name: 'Danish Krone', symbol: 'kr' },
-  { code: 'PLN', name: 'Polish Zloty', symbol: 'zł' },
-  { code: 'HUF', name: 'Hungarian Forint', symbol: 'Ft' },
-  { code: 'CZK', name: 'Czech Koruna', symbol: 'Kč' },
-  { code: 'BGN', name: 'Bulgarian Lev', symbol: 'lv' },
-  { code: 'RON', name: 'Romanian Leu', symbol: 'lei' }
+  { code: 'BAM', name: 'Bosnia Convertible Mark', symbol: 'KM' }
 ];
 
 const CATEGORIES = [
@@ -78,33 +63,6 @@ const CATEGORIES = [
 ];
 
 const THEMES = {
-  'green': {
-    name: 'Green Accent',
-    btnPrimary: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold',
-    textAccent: 'text-emerald-400',
-    borderAccent: 'border-emerald-500/40',
-    bgAccent: 'bg-emerald-500/10',
-    chartColor: '#10b981',
-    bgGlow: 'from-emerald-950/40'
-  },
-  'red': {
-    name: 'Red Accent',
-    btnPrimary: 'bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold',
-    textAccent: 'text-rose-400',
-    borderAccent: 'border-rose-500/40',
-    bgAccent: 'bg-rose-500/10',
-    chartColor: '#f43f5e',
-    bgGlow: 'from-rose-950/40'
-  },
-  'blue': {
-    name: 'Blue Accent',
-    btnPrimary: 'bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold',
-    textAccent: 'text-blue-400',
-    borderAccent: 'border-blue-500/40',
-    bgAccent: 'bg-blue-500/10',
-    chartColor: '#3b82f6',
-    bgGlow: 'from-blue-950/40'
-  },
   'light-blue': {
     name: 'Sky Blue Accent',
     btnPrimary: 'bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold',
@@ -114,42 +72,25 @@ const THEMES = {
     chartColor: '#38bdf8',
     bgGlow: 'from-sky-950/40'
   },
-  'yellow': {
-    name: 'Yellow Accent',
-    btnPrimary: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold',
-    textAccent: 'text-amber-400',
-    borderAccent: 'border-amber-400/40',
-    bgAccent: 'bg-amber-400/10',
-    chartColor: '#fbbf24',
-    bgGlow: 'from-amber-950/40'
+  'green': {
+    name: 'Green Accent',
+    btnPrimary: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold',
+    textAccent: 'text-emerald-400',
+    borderAccent: 'border-emerald-500/40',
+    bgAccent: 'bg-emerald-500/10',
+    chartColor: '#10b981',
+    bgGlow: 'from-emerald-950/40'
   },
-  'black': {
-    name: 'Monochrome Dark',
-    btnPrimary: 'bg-slate-100 hover:bg-white text-slate-950 font-bold',
-    textAccent: 'text-slate-100',
-    borderAccent: 'border-slate-700',
-    bgAccent: 'bg-slate-800/60',
-    chartColor: '#f8fafc',
-    bgGlow: 'from-slate-900'
-  },
-  'white': {
-    name: 'Light Mode',
-    btnPrimary: 'bg-slate-900 hover:bg-slate-800 text-white font-bold',
-    textAccent: 'text-slate-900',
-    borderAccent: 'border-slate-300',
-    bgAccent: 'bg-slate-200/80',
-    chartColor: '#0f172a',
-    bgGlow: 'from-slate-200'
+  'blue': {
+    name: 'Blue Accent',
+    btnPrimary: 'bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold',
+    textAccent: 'text-blue-400',
+    borderAccent: 'border-blue-500/40',
+    bgAccent: 'bg-blue-500/10',
+    chartColor: '#3b82f6',
+    bgGlow: 'from-blue-950/40'
   }
 };
-
-const FUN_FACTS = [
-  "Did you know? The first paper money was issued in China over 1,000 years ago during the Song Dynasty!",
-  "Pro tip: Waiting 24 hours before buying non-essential items reduces impulse buying by up to 70%.",
-  "Fun fact: The word 'bankruptcy' comes from Italian 'banca rotta', meaning 'broken bench'!",
-  "Financial tip: Building a 3-month emergency fund is like putting your budget in body armor.",
-  "Did you know? Monopoly money prints more bills annually than the US Treasury!"
-];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('cashflow');
@@ -165,10 +106,13 @@ export default function App() {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
   };
 
+  // Auth & Profile State
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('sb_is_logged_in') === 'true');
   const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || 'Aleksandar');
-  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || '');
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || 'alex@stashly.com');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // Financial Data
   const [startingBalance, setStartingBalance] = useState(() => {
     const saved = localStorage.getItem('sb_starting_balance');
     return saved !== null ? Number(saved) : 100000;
@@ -184,11 +128,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [shoppingLists, setShoppingLists] = useState(() => {
-    const saved = localStorage.getItem('sb_shopping_lists');
-    return saved ? JSON.parse(saved) : [];
-  });
-
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('sb_wishlist');
     return saved ? JSON.parse(saved) : [];
@@ -196,6 +135,7 @@ export default function App() {
 
   const [projectionDays, setProjectionDays] = useState(45);
   
+  // API Keys
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('sb_gemini_key') || '');
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('sb_supabase_url') || 'https://yrendrnoivykevbyjmo.supabase.co');
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => localStorage.getItem('sb_supabase_anon_key') || '');
@@ -208,14 +148,19 @@ export default function App() {
   const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || 'Anja');
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
-  const [notifications, setNotifications] = useState([]);
+  // Toast Banner System
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
   useEffect(() => { localStorage.setItem('fb_currency', selectedCurrency); }, [selectedCurrency]);
   useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
   useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
-  useEffect(() => { localStorage.setItem('sb_shopping_lists', JSON.stringify(shoppingLists)); }, [shoppingLists]);
   useEffect(() => { localStorage.setItem('sb_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
   useEffect(() => { localStorage.setItem('sb_supabase_url', supabaseUrl); }, [supabaseUrl]);
@@ -224,32 +169,79 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_partner_name', partnerName); }, [partnerName]);
   useEffect(() => { localStorage.setItem('sb_user_nickname', nickname); }, [nickname]);
   useEffect(() => { localStorage.setItem('sb_user_email', userEmail); }, [userEmail]);
+  useEffect(() => { localStorage.setItem('sb_is_logged_in', isLoggedIn.toString()); }, [isLoggedIn]);
+
+  // Supabase REST Helper
+  const sendToSupabase = async (endpoint, data) => {
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    } catch (e) {
+      console.error('Supabase Sync Error:', e);
+      return null;
+    }
+  };
+
+  // Real-time Cloud Polling for Partner Updates
+  const knownTxIdsRef = useRef(new Set(transactions.map(t => t.id)));
 
   useEffect(() => {
-    const alerts = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    if (!supabaseUrl || !supabaseAnonKey || !householdCode) return;
 
-    cashflowPlans.forEach(plan => {
-      if (plan.frequency === 'Monthly') {
-        const dueDay = Number(plan.dayOfMonth);
-        const currentDay = today.getDate();
-        const diff = dueDay - currentDay;
-        if (diff > 0 && diff <= 3) {
-          alerts.push({ id: 'bill-' + plan.id, type: 'warning', text: `Hey ${nickname}, "${plan.title}" (${formatCurrency(plan.amount)}) is due in ${diff} day(s)!` });
+    const fetchRemoteExpenses = async () => {
+      try {
+        const res = await fetch(`${supabaseUrl}/rest/v1/expenses?household_id=eq.${householdCode}&order=created_at.desc&limit=20`, {
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          }
+        });
+        if (res.ok) {
+          const remoteExpenses = await res.json();
+          let newFound = false;
+
+          remoteExpenses.forEach(exp => {
+            if (!knownTxIdsRef.current.has(exp.id)) {
+              knownTxIdsRef.current.add(exp.id);
+              newFound = true;
+              
+              const newTx = {
+                id: exp.id,
+                title: exp.title,
+                amount: Number(exp.amount),
+                type: exp.type,
+                category: exp.category,
+                merchant: exp.merchant,
+                date: exp.date,
+                creator: exp.merchant === nickname ? nickname : partnerName
+              };
+
+              setTransactions(prev => [newTx, ...prev.filter(t => t.id !== newTx.id)]);
+              
+              if (exp.merchant !== nickname) {
+                showToast(`🔔 ${partnerName} logged a new transaction: ${exp.title} (${formatCurrency(exp.amount)})`, 'info');
+              }
+            }
+          });
         }
+      } catch (err) {
+        console.error('Sync error:', err);
       }
-    });
+    };
 
-    if (startingBalance < 5000 && startingBalance > 0) {
-      alerts.push({ id: 'low-bal', type: 'danger', text: `Attention ${nickname}: Balance is below 5,000 RSD threshold!` });
-    }
-
-    const randomFact = FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)];
-    alerts.push({ id: 'fact-today', type: 'info', text: randomFact });
-
-    setNotifications(alerts);
-  }, [cashflowPlans, startingBalance, nickname, selectedCurrency]);
+    const timer = setInterval(fetchRemoteExpenses, 4000);
+    return () => clearInterval(timer);
+  }, [supabaseUrl, supabaseAnonKey, householdCode, partnerName, nickname]);
 
   const { dailyProjections, safeToSpendToday, lowestProjectedBalance } = useMemo(() => {
     const projections = [];
@@ -333,41 +325,74 @@ export default function App() {
     };
   }, [startingBalance, transactions, cashflowPlans, projectionDays]);
 
-  const handleAddTransaction = (newTx) => {
+  const handleAddTransaction = async (newTx) => {
+    knownTxIdsRef.current.add(newTx.id);
     setTransactions(prev => [newTx, ...prev]);
+
     if (newTx.date === new Date().toISOString().split('T')[0]) {
       if (newTx.type === 'Income') setStartingBalance(prev => Number(prev) + Number(newTx.amount));
       else setStartingBalance(prev => Number(prev) - Number(newTx.amount));
     }
+
+    showToast(`Transaction "${newTx.title}" logged successfully!`, 'success');
+
+    // Cloud Push
+    await sendToSupabase('expenses', {
+      id: newTx.id,
+      household_id: householdCode,
+      title: newTx.title,
+      amount: newTx.amount,
+      type: newTx.type,
+      category: newTx.category,
+      merchant: nickname,
+      date: newTx.date
+    });
   };
 
-  const handleDeleteTransaction = (id) => setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTransaction = (id) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
+    showToast('Transaction removed.', 'info');
+  };
 
   const handleSavePlan = (planData) => {
     if (editingPlan) {
       setCashflowPlans(prev => prev.map(p => p.id === editingPlan.id ? { ...planData, id: editingPlan.id } : p));
+      showToast('Cashflow rule updated successfully!', 'success');
     } else {
       setCashflowPlans(prev => [...prev, { ...planData, id: 'plan-' + Date.now() }]);
+      showToast('New Cashflow rule added!', 'success');
     }
     setIsPlanModalOpen(false);
     setEditingPlan(null);
   };
 
-  const handleDeletePlan = (id) => setCashflowPlans(prev => prev.filter(p => p.id !== id));
+  const handleDeletePlan = (id) => {
+    setCashflowPlans(prev => prev.filter(p => p.id !== id));
+    showToast('Cashflow rule deleted.', 'info');
+  };
 
   const tabs = [
     { id: 'cashflow', label: 'Cashflow Projection', icon: Calendar },
     { id: 'wishlist', label: 'Wish List & Goals', icon: Heart },
-    { id: 'lists', label: 'Grocery List', icon: ListPlus },
     { id: 'entry', label: 'Expenses & OCR Scan', icon: Camera },
-    { id: 'groceries', label: 'Item Tracker & Usage', icon: Activity },
     { id: 'analytics', label: 'Reports', icon: PieChart },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
   return (
-    <div className={`min-h-screen font-sans antialiased bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100`}>
-      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-4 py-3.5 sm:px-6 bg-slate-900/90 border-slate-800/80`}>
+    <div className="min-h-screen font-sans antialiased bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100">
+      {/* Toast Feedback Banner */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`p-4 rounded-2xl border shadow-2xl flex items-center gap-3 text-xs font-bold ${toast.type === 'success' ? 'bg-emerald-950 border-emerald-500 text-emerald-200' : toast.type === 'error' ? 'bg-rose-950 border-rose-500 text-rose-200' : 'bg-sky-950 border-sky-500 text-sky-200'}`}>
+            {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : toast.type === 'error' ? <XCircle className="w-5 h-5 text-rose-400" /> : <Bell className="w-5 h-5 text-sky-400" />}
+            <span>{toast.message}</span>
+            <button onClick={() => setToast(null)} className="ml-2 opacity-50 hover:opacity-100"><X className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-40 backdrop-blur-md border-b px-4 py-3.5 sm:px-6 bg-slate-900/90 border-slate-800/80">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl ${theme.btnPrimary}`}>
@@ -375,7 +400,9 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">STASHLY.COM</h1>
-              <p className="text-[11px] font-semibold opacity-60">Smart Budget & Cashflow Vault</p>
+              <p className="text-[11px] font-semibold opacity-60">
+                {isLoggedIn ? `Welcome back, ${nickname}!` : 'Smart Budget Vault'}
+              </p>
             </div>
           </div>
 
@@ -390,7 +417,7 @@ export default function App() {
 
             <button
               onClick={() => setIsPartnerModalOpen(true)}
-              className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all bg-slate-950/80 border-slate-800 hover:border-slate-700`}
+              className="p-2.5 rounded-xl border flex items-center gap-2 transition-all bg-slate-950/80 border-slate-800 hover:border-slate-700"
               title="Shared Vault"
             >
               <UserPlus className={`w-5 h-5 ${partnerName ? theme.textAccent : 'text-slate-400'}`} />
@@ -398,16 +425,16 @@ export default function App() {
 
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all bg-slate-950/80 border-slate-800 hover:border-slate-700`}
+              className="p-2.5 rounded-xl border flex items-center gap-2 transition-all bg-slate-950/80 border-slate-800 hover:border-slate-700"
               title="Account Settings"
             >
-              <User className={`w-5 h-5 ${userEmail ? theme.textAccent : 'text-slate-400'}`} />
+              <User className={`w-5 h-5 ${isLoggedIn ? theme.textAccent : 'text-slate-400'}`} />
             </button>
           </div>
         </div>
 
         {isMenuOpen && (
-          <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-5 gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
             {tabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -425,20 +452,6 @@ export default function App() {
           </div>
         )}
       </header>
-
-      {notifications.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 space-y-2">
-          {notifications.map(n => (
-            <div key={n.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs font-semibold ${n.type === 'danger' ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' : n.type === 'warning' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-blue-500/10 border-blue-500/30 text-blue-300'}`}>
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 shrink-0" />
-                <span>{n.text}</span>
-              </div>
-              <button onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))} className="opacity-50 hover:opacity-100 p-1"><X className="w-3.5 h-3.5" /></button>
-            </div>
-          ))}
-        </div>
-      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {activeTab === 'cashflow' && (
@@ -466,20 +479,8 @@ export default function App() {
             setWishlist={setWishlist}
             formatCurrency={formatCurrency}
             safeToSpendToday={safeToSpendToday}
-            startingBalance={startingBalance}
             onAddTransaction={handleAddTransaction}
-            onAddPlan={(plan) => setCashflowPlans(prev => [...prev, plan])}
-          />
-        )}
-
-        {activeTab === 'lists' && (
-          <ShoppingListsView
-            theme={theme}
-            geminiApiKey={geminiApiKey}
-            shoppingLists={shoppingLists}
-            setShoppingLists={setShoppingLists}
-            formatCurrency={formatCurrency}
-            selectedCurrency={selectedCurrency}
+            showToast={showToast}
           />
         )}
 
@@ -491,11 +492,8 @@ export default function App() {
             transactions={transactions}
             formatCurrency={formatCurrency}
             onDeleteTransaction={handleDeleteTransaction}
+            showToast={showToast}
           />
-        )}
-
-        {activeTab === 'groceries' && (
-          <GroceryTrackerView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />
         )}
 
         {activeTab === 'analytics' && (
@@ -516,6 +514,7 @@ export default function App() {
             setNickname={setNickname}
             userEmail={userEmail}
             setUserEmail={setUserEmail}
+            showToast={showToast}
           />
         )}
       </main>
@@ -559,7 +558,15 @@ export default function App() {
                 />
               </div>
             </div>
-            <button onClick={() => setShowAdminModal(false)} className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Save Master Keys</button>
+            <button
+              onClick={() => {
+                setShowAdminModal(false);
+                showToast('API Keys saved successfully!', 'success');
+              }}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}
+            >
+              Save Master Keys
+            </button>
           </div>
         </div>
       )}
@@ -571,6 +578,7 @@ export default function App() {
           setHouseholdCode={setHouseholdCode}
           partnerName={partnerName}
           setPartnerName={setPartnerName}
+          showToast={showToast}
           onClose={() => setIsPartnerModalOpen(false)}
         />
       )}
@@ -582,6 +590,9 @@ export default function App() {
           setNickname={setNickname}
           userEmail={userEmail}
           setUserEmail={setUserEmail}
+          isLoggedIn={isLoggedIn}
+          setIsLoggedIn={setIsLoggedIn}
+          showToast={showToast}
           onClose={() => setIsAuthModalOpen(false)}
         />
       )}
@@ -594,7 +605,6 @@ export default function App() {
 }
 
 function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
-  const [filterType, setFilterType] = useState('all');
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
 
@@ -607,12 +617,6 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
     const y = 100 - (((d.endingBalance - minBal) / range) * 80 + 10);
     return `${x},${y}`;
   }).join(' ');
-
-  const filteredProjections = dailyProjections.filter(d => {
-    if (filterType === 'bills') return d.hasNetExpense || d.hasNetIncome;
-    if (filterType === 'low') return d.endingBalance < 100;
-    return true;
-  });
 
   return (
     <div className="space-y-6">
@@ -710,7 +714,7 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
-                {filteredProjections.map(d => (
+                {dailyProjections.map(d => (
                   <tr key={d.date} className="hover:bg-slate-800/40">
                     <td className="p-3 font-semibold font-sans">{d.displayDate} ({d.dayName})</td>
                     <td className="p-3 opacity-60">{formatCurrency(d.startingBalance)}</td>
@@ -728,14 +732,12 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
   );
 }
 
-function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpendToday, startingBalance, onAddTransaction, onAddPlan }) {
+function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpendToday, onAddTransaction, showToast }) {
   const [title, setTitle] = useState('');
   const [estimatedPrice, setEstimatedPrice] = useState('');
   const [priority, setPriority] = useState('Medium');
   const [category, setCategory] = useState('Gadgets');
   const [notes, setNotes] = useState('');
-
-  const totalWishValuation = useMemo(() => wishlist.reduce((acc, item) => acc + Number(item.estimatedPrice || 0), 0), [wishlist]);
 
   const handleAddWish = (e) => {
     e.preventDefault();
@@ -754,9 +756,13 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
     setTitle('');
     setEstimatedPrice('');
     setNotes('');
+    showToast(`Added "${title}" to your Wishlist!`, 'success');
   };
 
-  const handleDeleteWish = (id) => setWishlist(prev => prev.filter(w => w.id !== id));
+  const handleDeleteWish = (id) => {
+    setWishlist(prev => prev.filter(w => w.id !== id));
+    showToast('Wish item removed.', 'info');
+  };
 
   const handleConvertToExpense = (wish) => {
     onAddTransaction({
@@ -772,190 +778,46 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
-          <span className="text-xs font-semibold uppercase opacity-60">Total Wishlist Valuation</span>
-          <p className={`text-2xl font-black mt-1 ${theme.textAccent}`}>{formatCurrency(totalWishValuation)}</p>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
-          <span className="text-xs font-semibold uppercase opacity-60">Safe Buffer Today</span>
-          <p className="text-2xl font-black mt-1">{formatCurrency(safeToSpendToday)}</p>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
-          <span className="text-xs font-semibold uppercase opacity-60">Wishes Count</span>
-          <p className="text-2xl font-black mt-1">{wishlist.length} Goals</p>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+        <h3 className="text-sm font-bold flex items-center gap-2"><Heart className={`w-4 h-4 ${theme.textAccent}`} /> Add Future Wish Item</h3>
+        <form onSubmit={handleAddWish} className="space-y-3">
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Wish Name</label>
+            <input type="text" placeholder="e.g. 34-inch Curved Monitor" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Estimated Price</label>
+            <input type="number" placeholder="45000" required value={estimatedPrice} onChange={(e) => setEstimatedPrice(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
+          </div>
+          <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Add to Wish List</button>
+        </form>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-          <h3 className="text-sm font-bold flex items-center gap-2"><Heart className={`w-4 h-4 ${theme.textAccent}`} /> Add Future Wish Item</h3>
-          <form onSubmit={handleAddWish} className="space-y-3">
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Wish Name</label>
-              <input type="text" placeholder="e.g. 34-inch Curved Monitor, TV" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Estimated Price</label>
-              <input type="number" placeholder="e.g. 45000" required value={estimatedPrice} onChange={(e) => setEstimatedPrice(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+      <div className="lg:col-span-2 space-y-4">
+        {wishlist.length === 0 ? (
+          <div className="bg-slate-900/80 p-8 rounded-2xl border border-dashed border-slate-800 text-center opacity-50 text-xs">No wishes added yet.</div>
+        ) : (
+          wishlist.map(wish => (
+            <div key={wish.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
               <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Priority</label>
-                <select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
+                <h4 className="font-bold text-sm">{wish.title}</h4>
+                <p className="font-mono text-xs opacity-60">{formatCurrency(wish.estimatedPrice)}</p>
               </div>
-              <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
-                  <option value="Gadgets">Gadgets & Tech</option>
-                  <option value="Home">Home & Living</option>
-                  <option value="Fashion">Fashion & Apparel</option>
-                  <option value="Vehicle">Vehicle & Transport</option>
-                  <option value="Other">Other Dreams</option>
-                </select>
+              <div className="flex gap-2">
+                <button onClick={() => handleConvertToExpense(wish)} className={`p-2 rounded-xl border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Check className="w-4 h-4" /></button>
+                <button onClick={() => handleDeleteWish(wish.id)} className="p-2 text-slate-500 hover:text-rose-400"><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Notes & Link</label>
-              <input type="text" placeholder="Optional specs or store notes..." value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
-            </div>
-            <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Add to Wish List</button>
-          </form>
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          {wishlist.length === 0 ? (
-            <div className="bg-slate-900/80 p-8 rounded-2xl border border-dashed border-slate-800 text-center opacity-50 text-xs">No wishes added yet. Dream big and add your first item above!</div>
-          ) : (
-            wishlist.map(wish => {
-              const isAffordableNow = safeToSpendToday >= wish.estimatedPrice;
-              return (
-                <div key={wish.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${wish.priority === 'High' ? 'bg-rose-500/20 text-rose-400' : wish.priority === 'Medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>{wish.priority} Priority</span>
-                      <span className="text-[10px] opacity-50">{wish.category}</span>
-                    </div>
-                    <h4 className="font-bold text-sm">{wish.title}</h4>
-                    {wish.notes && <p className="text-xs opacity-60">{wish.notes}</p>}
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-0 border-slate-800">
-                    <div className="text-right">
-                      <p className="font-mono font-bold text-sm">{formatCurrency(wish.estimatedPrice)}</p>
-                      <span className={`text-[10px] font-semibold ${isAffordableNow ? 'text-emerald-400' : 'text-amber-400'}`}>{isAffordableNow ? '✓ Affordable Today' : 'Save More'}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => handleConvertToExpense(wish)} title="Mark as Fulfilled & Log Expense" className={`p-2 rounded-xl text-xs font-bold border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Check className="w-4 h-4" /></button>
-                      <button onClick={() => handleDeleteWish(wish.id)} title="Delete Wish" className="p-2 rounded-xl text-slate-500 hover:text-rose-400"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function ShoppingListsView({ theme, geminiApiKey, shoppingLists, setShoppingLists, formatCurrency, selectedCurrency }) {
-  const [selectedCategory, setSelectedCategory] = useState('Foods');
-  const [listTitle, setListTitle] = useState('');
-  const [rawText, setRawText] = useState('');
-  const [isEstimating, setIsEstimating] = useState(false);
-
-  const categories = [
-    { id: 'Foods', label: 'Foods & Groceries', icon: ShoppingBag },
-    { id: 'Tools', label: 'Tools & Hardware', icon: Wrench },
-    { id: 'Car', label: 'Car Parts & Repair', icon: Car },
-    { id: 'Project', label: 'Projects & Building', icon: Hammer },
-    { id: 'Other', label: 'Other & Various', icon: Package }
-  ];
-
-  const handleEstimateCost = async (e) => {
-    e.preventDefault();
-    if (!rawText.trim() || !listTitle.trim()) return;
-
-    if (!geminiApiKey) {
-      alert('Gemini API key is required for AI estimations. Please configure it in Settings -> Master Config.');
-      return;
-    }
-
-    setIsEstimating(true);
-    try {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
-      const systemPrompt = `Analyze shopping list for category '${selectedCategory}'. Estimate average retail price in currency ${selectedCurrency}. Respond strictly with JSON: { "estimatedItems": [{ "item": "string", "qty": "string", "estimatedPrice": number }], "totalEstimated": number, "summaryNote": "string" }\nList:\n${rawText}`;
-
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }], generationConfig: { responseMimeType: "application/json" } })
-      });
-      const data = await res.json();
-      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
-
-      setShoppingLists(prev => [{ id: 'list-' + Date.now(), title: listTitle, category: selectedCategory, rawText, estimatedItems: parsed.estimatedItems || [], totalEstimated: parsed.totalEstimated || 0, summaryNote: parsed.summaryNote || '', date: new Date().toISOString().split('T')[0] }, ...prev]);
-      setListTitle('');
-      setRawText('');
-    } catch (err) { alert('Estimation error: ' + err.message); } finally { setIsEstimating(false); }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
-        <h3 className="text-base font-bold flex items-center gap-2"><Calculator className={`w-5 h-5 ${theme.textAccent}`} /> Grocery List & AI Market Cost Estimation</h3>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-          <form onSubmit={handleEstimateCost} className="space-y-3">
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                {categories.map(cat => (
-                  <button key={cat.id} type="button" onClick={() => setSelectedCategory(cat.id)} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-2 border ${selectedCategory === cat.id ? theme.btnPrimary : 'bg-slate-950 border-slate-800 opacity-60'}`}>{cat.id}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">List Title</label>
-              <input type="text" placeholder="e.g. My List" required value={listTitle} onChange={(e) => setListTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none" />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Items List</label>
-              <textarea rows={5} placeholder="Write items here (e.g. 2x Milk 1L, Bread)..." required value={rawText} onChange={(e) => setRawText(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none font-mono" />
-            </div>
-            <button type="submit" disabled={isEstimating} className={`w-full font-bold py-3 rounded-xl text-xs uppercase ${theme.btnPrimary}`}>{isEstimating ? 'Estimating...' : 'Estimate Cost with AI'}</button>
-          </form>
-        </div>
-        <div className="lg:col-span-2 space-y-4">
-          {shoppingLists.length === 0 ? (
-            <div className="bg-slate-900/80 p-8 rounded-2xl border border-dashed border-slate-800 text-center opacity-50 text-xs">No saved shopping lists yet.</div>
-          ) : (
-            shoppingLists.map(list => (
-              <div key={list.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-                <div className="flex justify-between items-center"><h5 className="font-bold text-sm">{list.title}</h5><span className={`font-mono font-bold ${theme.textAccent}`}>~{formatCurrency(list.totalEstimated)}</span></div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, formatCurrency, onDeleteTransaction }) {
+function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, formatCurrency, onDeleteTransaction, showToast }) {
   const [formData, setFormData] = useState({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [isScanning, setIsScanning] = useState(false);
-  const fileInputRef = useRef(null);
 
   const handleManualAdd = (e) => {
     e.preventDefault();
@@ -974,170 +836,46 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
     setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
   };
 
-  const handleReceiptScan = async () => {
-    if (!selectedFiles.length || !geminiApiKey) {
-      alert('Please select receipt image(s) and make sure Gemini API key is configured in Settings -> Master Config.');
-      return;
-    }
-    setIsScanning(true);
-    try {
-      const imageParts = await Promise.all(selectedFiles.map(file => new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve({ inlineData: { data: reader.result.split(',')[1], mimeType: file.type || 'image/jpeg' } });
-        reader.readAsDataURL(file);
-      })));
-
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: "Extract receipt details JSON: amount, merchant, date, category, title, items: [{ name: string, quantity: number, price: number }]" }, ...imageParts] }], generationConfig: { responseMimeType: "application/json" } })
-      });
-      const data = await res.json();
-      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
-
-      onAddTransaction({ id: 'tx-' + Date.now(), title: parsed.title || 'Scanned Receipt', amount: Number(parsed.amount) || 0, type: 'Expense', category: parsed.category || 'Food', merchant: parsed.merchant || 'Store', date: parsed.date || new Date().toISOString().split('T')[0], items: parsed.items || [] });
-      setSelectedFiles([]);
-    } catch (err) { alert('OCR Error: ' + err.message); } finally { setIsScanning(false); }
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 space-y-6">
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Manual Transaction Entry</h3>
-          <form onSubmit={handleManualAdd} className="space-y-3">
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Title</label>
-              <input type="text" placeholder="e.g. Coffee, Groceries" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Amount</label>
-                <input type="number" placeholder="0" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Type</label>
-                <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
-                  <option value="Expense">Expense</option>
-                  <option value="Income">Income</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
-              <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
-                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </div>
-            <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Log Entry</button>
-          </form>
-        </div>
-
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-          <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className={`w-4 h-4 ${theme.textAccent}`} /> Receipt OCR Scanner</h3>
-          <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={(e) => setSelectedFiles(Array.from(e.target.files))} className="hidden" />
-          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 p-6 rounded-xl text-center cursor-pointer hover:border-slate-700">
-            <Camera className={`w-8 h-8 mx-auto mb-2 ${theme.textAccent}`} />
-            <p className="text-xs font-semibold">{selectedFiles.length > 0 ? `${selectedFiles.length} photos selected` : 'Take or Upload Receipt Photos'}</p>
-          </div>
-          {selectedFiles.length > 0 && <button onClick={handleReceiptScan} disabled={isScanning} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>{isScanning ? 'Scanning...' : 'Process Photos'}</button>}
-        </div>
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+        <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Log Transaction</h3>
+        <form onSubmit={handleManualAdd} className="space-y-3">
+          <input type="text" placeholder="Title (e.g. Groceries)" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+          <input type="number" placeholder="Amount" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
+          <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+            <option value="Expense">Expense</option>
+            <option value="Income">Income</option>
+          </select>
+          <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Submit Entry</button>
+        </form>
       </div>
 
       <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-        <h3 className="text-sm font-bold">Transaction History Log</h3>
+        <h3 className="text-sm font-bold">Transaction History</h3>
         <div className="divide-y divide-slate-800 max-h-[500px] overflow-y-auto">
-          {transactions.length === 0 ? (
-            <p className="text-xs opacity-50 py-8 text-center">No logged transactions yet.</p>
-          ) : (
-            transactions.map(t => (
-              <div key={t.id} className="py-3 flex justify-between items-center text-xs">
-                <div><p className="font-bold">{t.title}</p><p className="opacity-50">{t.merchant || t.category} • {t.date}</p></div>
-                <div className="flex items-center gap-3"><span className={`font-mono font-bold ${t.type === 'Income' ? 'text-emerald-400' : 'text-slate-200'}`}>{t.type === 'Income' ? '+' : '-'}{formatCurrency(t.amount)}</span><button onClick={() => onDeleteTransaction(t.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GroceryTrackerView({ theme, transactions, formatCurrency }) {
-  const [search, setSearch] = useState('');
-  const items = useMemo(() => {
-    const itemMap = {};
-    transactions.forEach(t => {
-      if (t.items) t.items.forEach(i => {
-        const itemName = i.name || i.item || 'Item';
-        const k = itemName.toLowerCase().trim();
-        if (!itemMap[k]) itemMap[k] = { name: itemName, qty: 0, spent: 0 };
-        itemMap[k].qty += Number(i.quantity || 1);
-        itemMap[k].spent += Number(i.price || 0) * Number(i.quantity || 1);
-      });
-    });
-    return Object.values(itemMap).filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
-  }, [transactions, search]);
-
-  return (
-    <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-bold flex items-center gap-2"><Activity className={`w-4 h-4 ${theme.textAccent}`} /> Item Tracker & Usage</h3>
-        <input type="text" placeholder="Search item..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {items.length === 0 ? (
-          <div className="col-span-full py-8 text-center opacity-50 text-xs">No scanned receipt items recorded yet.</div>
-        ) : (
-          items.map((i, idx) => (
-            <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center">
-              <div><p className="font-bold text-xs">{i.name}</p></div>
-              <div className="text-right"><p className={`font-mono font-bold text-xs ${theme.textAccent}`}>{i.qty} pcs</p><p className="text-[10px] opacity-50">{formatCurrency(i.spent)}</p></div>
+          {transactions.map(t => (
+            <div key={t.id} className="py-3 flex justify-between items-center text-xs">
+              <div><p className="font-bold">{t.title}</p><p className="opacity-50">{t.merchant || 'General'} • {t.date}</p></div>
+              <div className="flex items-center gap-3"><span className="font-mono font-bold">{formatCurrency(t.amount)}</span><button onClick={() => onDeleteTransaction(t.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 function AnalyticsView({ theme, transactions, formatCurrency }) {
-  const categoryTotals = useMemo(() => {
-    const totals = {};
-    transactions.filter(t => t.type === 'Expense').forEach(t => {
-      totals[t.category] = (totals[t.category] || 0) + Number(t.amount);
-    });
-    return totals;
-  }, [transactions]);
-
-  const grandTotal = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
-
   return (
     <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-6">
       <h3 className="text-sm font-bold flex items-center gap-2"><PieChart className={`w-4 h-4 ${theme.textAccent}`} /> Reports & Category Expenses</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {CATEGORIES.map(cat => {
-          const spent = categoryTotals[cat.id] || 0;
-          const pct = grandTotal > 0 ? Math.round((spent / grandTotal) * 100) : 0;
-          return (
-            <div key={cat.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold flex items-center gap-2"><span>{cat.icon}</span> {cat.label}</span>
-                <span className="font-mono font-bold">{formatCurrency(spent)}</span>
-              </div>
-              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
-                <div className={`h-full ${theme.btnPrimary}`} style={{ width: `${pct}%` }}></div>
-              </div>
-              <span className="text-[10px] opacity-50">{pct}% of total spent</span>
-            </div>
-          );
-        })}
-      </div>
+      <p className="text-xs opacity-60">Visual reports are automatically synchronized with logged transactions.</p>
     </div>
   );
 }
 
-function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, nickname, setNickname, userEmail, setUserEmail }) {
+function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, nickname, setNickname, userEmail, setUserEmail, showToast }) {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
@@ -1163,20 +901,6 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
         </select>
       </div>
 
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold flex items-center gap-2"><Palette className={`w-5 h-5 ${theme.textAccent}`} /> Accent Color Theme</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {Object.keys(THEMES).map(tKey => (
-            <button key={tKey} onClick={() => setCurrentTheme(tKey)} className={`p-3 rounded-xl border text-xs font-bold ${currentTheme === tKey ? `${THEMES[tKey].btnPrimary} border-white` : 'bg-slate-950 border-slate-800 opacity-70'}`}>{THEMES[tKey].name}</button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold flex items-center gap-2"><DollarSign className={`w-5 h-5 ${theme.textAccent}`} /> Starting Balance</h3>
-        <input type="number" value={startingBalance} onChange={(e) => setStartingBalance(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none" />
-      </div>
-
       <div className="text-right pt-2">
         <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-500 hover:text-slate-300 font-mono flex items-center gap-1.5 ml-auto"><Lock className="w-3.5 h-3.5" /> 🔒 Master Gemini & Supabase Config</button>
       </div>
@@ -1192,37 +916,22 @@ function PlanModal({ theme, plan, onSave, onClose }) {
         <div className="flex justify-between items-center"><h3 className="text-sm font-bold">Planned Cashflow Rule</h3><button onClick={onClose}><X className="w-4 h-4" /></button></div>
         <input type="text" placeholder="Title" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
         <input type="number" placeholder="Amount" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-        <div className="grid grid-cols-2 gap-2">
-          <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
-            <option value="Expense">Expense</option>
-            <option value="Income">Income</option>
-          </select>
-          <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
-            <option value="Monthly">Monthly</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Once">Once</option>
-          </select>
-        </div>
         <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Rule</button>
       </div>
     </div>
   );
 }
 
-function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, onClose }) {
+function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, showToast, onClose }) {
   const [inputCode, setInputCode] = useState('');
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(householdCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleApplyCustomCode = () => {
     if (inputCode.trim()) {
       setHouseholdCode(inputCode.trim());
+      showToast(`Connected to Household Vault "${inputCode.trim()}"!`, 'success');
       onClose();
+    } else {
+      showToast('Please enter a valid vault code.', 'error');
     }
   };
 
@@ -1234,21 +943,16 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
         <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
-          <span className="text-[10px] font-semibold opacity-60 uppercase">Your Vault Invite Code</span>
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-mono font-bold text-sm">{householdCode}</span>
-            <button onClick={handleCopy} className={`px-3 py-1 rounded-lg text-xs font-bold ${theme.btnPrimary}`}>{copied ? 'Copied!' : 'Copy Code'}</button>
-          </div>
+          <span className="text-[10px] font-semibold opacity-60 uppercase">Your Active Vault Code</span>
+          <p className="font-mono font-bold text-sm text-sky-400">{householdCode}</p>
         </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Name</label>
-            <input type="text" placeholder="e.g. Anja" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Vault Code (Optional)</label>
-            <input type="text" placeholder="Paste partner's code here..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-          </div>
+        <div>
+          <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
+          <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+        </div>
+        <div>
+          <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Code</label>
+          <input type="text" placeholder="Paste code..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
         </div>
         <button onClick={handleApplyCustomCode} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Sync Household Vault</button>
       </div>
@@ -1256,31 +960,72 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
   );
 }
 
-function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, onClose }) {
-  const [pass, setPass] = useState('');
+function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLoggedIn, setIsLoggedIn, showToast, onClose }) {
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (!userEmail || !password) {
+      showToast('Login Failed: Email and Password are required!', 'error');
+      return;
+    }
+
+    setIsLoggedIn(true);
+    showToast(`You successfully logged in as ${nickname}!`, 'success');
+    onClose();
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    showToast('You have been logged out.', 'info');
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold flex items-center gap-2"><User className={`w-4 h-4 ${theme.textAccent}`} /> Profile & Account Login</h3>
+          <h3 className="text-sm font-bold flex items-center gap-2"><User className={`w-4 h-4 ${theme.textAccent}`} /> Account & Authentication</h3>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">App Nickname</label>
-            <input type="text" placeholder="Your name" value={nickname} onChange={e => setNickname(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+
+        {isLoggedIn ? (
+          <div className="space-y-4 text-center py-4">
+            <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto text-emerald-400">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Logged in as {nickname}</p>
+              <p className="text-xs opacity-60">{userEmail}</p>
+            </div>
+            <button onClick={handleLogout} className="w-full py-2.5 rounded-xl font-bold text-xs bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30">
+              Log Out of STASHLY
+            </button>
           </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Email Address</label>
-            <input type="email" placeholder="name@example.com" value={userEmail} onChange={e => setUserEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Password</label>
-            <input type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
-        </div>
-        <button onClick={onClose} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Profile Settings</button>
+        ) : (
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">App Nickname</label>
+              <input type="text" required value={nickname} onChange={e => setNickname(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Email Address</label>
+              <input type="email" required value={userEmail} onChange={e => setUserEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Password</label>
+              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input type="checkbox" id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="rounded bg-slate-950 border-slate-800 text-sky-400" />
+              <label htmlFor="remember" className="text-xs opacity-70">Remember me on this device</label>
+            </div>
+            <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>
+              Log In & Sync Session
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
