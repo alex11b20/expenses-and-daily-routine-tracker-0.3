@@ -36,7 +36,8 @@ import {
   Bell,
   User,
   LogIn,
-  LogOut
+  LogOut,
+  Database
 } from 'lucide-react';
 
 const WORLD_CURRENCIES = [
@@ -154,10 +155,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('cashflow');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fb_theme') || 'blue');
-  const theme = THEMES[currentTheme] || THEMES['blue'];
+  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fb_theme') || 'light-blue');
+  const theme = THEMES[currentTheme] || THEMES['light-blue'];
 
-  const [bgShade, setBgShade] = useState(() => localStorage.getItem('fb_bg_shade') || 'slate-950');
   const [selectedCurrency, setSelectedCurrency] = useState(() => localStorage.getItem('fb_currency') || 'RSD');
 
   const formatCurrency = (val) => {
@@ -165,13 +165,13 @@ export default function App() {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
   };
 
-  const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || 'Partner');
+  const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || 'Aleksandar');
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || '');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [startingBalance, setStartingBalance] = useState(() => {
     const saved = localStorage.getItem('sb_starting_balance');
-    return saved !== null ? Number(saved) : 0;
+    return saved !== null ? Number(saved) : 100000;
   });
 
   const [transactions, setTransactions] = useState(() => {
@@ -196,22 +196,21 @@ export default function App() {
 
   const [projectionDays, setProjectionDays] = useState(45);
   
-  const [geminiApiKey, setGeminiApiKey] = useState(() => {
-    return localStorage.getItem('sb_gemini_key') || '';
-  });
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('sb_gemini_key') || '');
+  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('sb_supabase_url') || 'https://yrendrnoivykevbyjmo.supabase.co');
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => localStorage.getItem('sb_supabase_anon_key') || '');
 
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
 
   const [householdCode, setHouseholdCode] = useState(() => localStorage.getItem('sb_household_code') || 'STASH-VAULT-88X');
-  const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || '');
+  const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || 'Anja');
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
-  useEffect(() => { localStorage.setItem('fb_bg_shade', bgShade); }, [bgShade]);
   useEffect(() => { localStorage.setItem('fb_currency', selectedCurrency); }, [selectedCurrency]);
   useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
   useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
@@ -219,6 +218,8 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_shopping_lists', JSON.stringify(shoppingLists)); }, [shoppingLists]);
   useEffect(() => { localStorage.setItem('sb_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
+  useEffect(() => { localStorage.setItem('sb_supabase_url', supabaseUrl); }, [supabaseUrl]);
+  useEffect(() => { localStorage.setItem('sb_supabase_anon_key', supabaseAnonKey); }, [supabaseAnonKey]);
   useEffect(() => { localStorage.setItem('sb_household_code', householdCode); }, [householdCode]);
   useEffect(() => { localStorage.setItem('sb_partner_name', partnerName); }, [partnerName]);
   useEffect(() => { localStorage.setItem('sb_user_nickname', nickname); }, [nickname]);
@@ -523,18 +524,42 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold flex items-center gap-2"><Lock className={`w-4 h-4 ${theme.textAccent}`} /> Admin API Key Override</h3>
+              <h3 className="text-sm font-bold flex items-center gap-2"><Lock className={`w-4 h-4 ${theme.textAccent}`} /> Supabase & Gemini Master Config</h3>
               <button onClick={() => setShowAdminModal(false)} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
             </div>
-            <p className="text-xs text-slate-400">Enter master Gemini API key for OCR receipt reading and AI estimation.</p>
-            <input
-              type="password"
-              placeholder="AIzaSy..."
-              value={geminiApiKey}
-              onChange={(e) => setGeminiApiKey(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none"
-            />
-            <button onClick={() => setShowAdminModal(false)} className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Save Admin Key</button>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase opacity-60">Supabase Project URL</label>
+                <input
+                  type="text"
+                  placeholder="https://yrendrnoivykevbyjmo.supabase.co"
+                  value={supabaseUrl}
+                  onChange={(e) => setSupabaseUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase opacity-60">Supabase Publishable Key (Anon)</label>
+                <input
+                  type="password"
+                  placeholder="sb_publishable_1HRHJRf9C02r..."
+                  value={supabaseAnonKey}
+                  onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase opacity-60">Gemini AI OCR Key</label>
+                <input
+                  type="password"
+                  placeholder="AIzaSy..."
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1"
+                />
+              </div>
+            </div>
+            <button onClick={() => setShowAdminModal(false)} className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Save Master Keys</button>
           </div>
         </div>
       )}
@@ -543,6 +568,7 @@ export default function App() {
         <PartnerModal
           theme={theme}
           householdCode={householdCode}
+          setHouseholdCode={setHouseholdCode}
           partnerName={partnerName}
           setPartnerName={setPartnerName}
           onClose={() => setIsPartnerModalOpen(false)}
@@ -768,7 +794,7 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
           <form onSubmit={handleAddWish} className="space-y-3">
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Wish Name</label>
-              <input type="text" placeholder="e.g. 34-inch Curved Monitor, Donkey, TV" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+              <input type="text" placeholder="e.g. 34-inch Curved Monitor, TV" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
             </div>
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Estimated Price</label>
@@ -789,7 +815,6 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
                   <option value="Gadgets">Gadgets & Tech</option>
                   <option value="Home">Home & Living</option>
                   <option value="Fashion">Fashion & Apparel</option>
-                  <option value="Animals">Animals & Livestock</option>
                   <option value="Vehicle">Vehicle & Transport</option>
                   <option value="Other">Other Dreams</option>
                 </select>
@@ -860,7 +885,7 @@ function ShoppingListsView({ theme, geminiApiKey, shoppingLists, setShoppingList
     if (!rawText.trim() || !listTitle.trim()) return;
 
     if (!geminiApiKey) {
-      alert('Gemini API key is required for AI estimations. Please configure it in Settings.');
+      alert('Gemini API key is required for AI estimations. Please configure it in Settings -> Master Config.');
       return;
     }
 
@@ -951,7 +976,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
 
   const handleReceiptScan = async () => {
     if (!selectedFiles.length || !geminiApiKey) {
-      alert('Please select receipt image(s) and make sure Gemini API key is configured.');
+      alert('Please select receipt image(s) and make sure Gemini API key is configured in Settings -> Master Config.');
       return;
     }
     setIsScanning(true);
@@ -1153,7 +1178,7 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
       </div>
 
       <div className="text-right pt-2">
-        <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-600 hover:text-slate-400 font-mono">🔒 Master Gemini API Config</button>
+        <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-500 hover:text-slate-300 font-mono flex items-center gap-1.5 ml-auto"><Lock className="w-3.5 h-3.5" /> 🔒 Master Gemini & Supabase Config</button>
       </div>
     </div>
   );
@@ -1184,7 +1209,7 @@ function PlanModal({ theme, plan, onSave, onClose }) {
   );
 }
 
-function PartnerModal({ theme, householdCode, partnerName, setPartnerName, onClose }) {
+function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, onClose }) {
   const [inputCode, setInputCode] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -1192,6 +1217,13 @@ function PartnerModal({ theme, householdCode, partnerName, setPartnerName, onClo
     navigator.clipboard.writeText(householdCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleApplyCustomCode = () => {
+    if (inputCode.trim()) {
+      setHouseholdCode(inputCode.trim());
+      onClose();
+    }
   };
 
   return (
@@ -1209,10 +1241,16 @@ function PartnerModal({ theme, householdCode, partnerName, setPartnerName, onClo
           </div>
         </div>
         <div className="space-y-3">
-          <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Name</label>
-          <input type="text" placeholder="e.g. Anja" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Name</label>
+            <input type="text" placeholder="e.g. Anja" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Vault Code (Optional)</label>
+            <input type="text" placeholder="Paste partner's code here..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+          </div>
         </div>
-        <button onClick={onClose} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Sync Household Vault</button>
+        <button onClick={handleApplyCustomCode} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Sync Household Vault</button>
       </div>
     </div>
   );
