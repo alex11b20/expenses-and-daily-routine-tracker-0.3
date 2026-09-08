@@ -39,7 +39,10 @@ import {
   LogOut,
   Database,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Eye,
+  Mail,
+  Shield
 } from 'lucide-react';
 
 const WORLD_CURRENCIES = [
@@ -51,15 +54,21 @@ const WORLD_CURRENCIES = [
   { code: 'BAM', name: 'Bosnia Convertible Mark', symbol: 'KM' }
 ];
 
-const CATEGORIES = [
-  { id: 'Food', label: 'Food & Groceries', icon: '🛒' },
-  { id: 'Utilities', label: 'Utilities & Bills', icon: '⚡' },
-  { id: 'Transport', label: 'Transportation & Fuel', icon: '🚗' },
-  { id: 'Housing', label: 'Housing & Rent', icon: '🏠' },
-  { id: 'Entertainment', label: 'Entertainment & Dining', icon: '☕' },
-  { id: 'Health', label: 'Health & Medical', icon: '💊' },
-  { id: 'Salary', label: 'Salary & Income', icon: '💼' },
-  { id: 'Other', label: 'Other Expenses', icon: '📦' }
+const PLAN_CATEGORIES = [
+  { id: 'General', label: 'General Expense / Income', icon: '📦' },
+  { id: 'Car', label: 'Car & Vehicle (Repair, Reg, Insurance)', icon: '🚗' },
+  { id: 'Utilities', label: 'Utilities & Household Bills', icon: '⚡' },
+  { id: 'Housing', label: 'Rent & Housing', icon: '🏠' },
+  { id: 'Salary', label: 'Salary & Income', icon: '💼' }
+];
+
+const CAR_SUB_CATEGORIES = [
+  'Vehicle Registration',
+  'Repairs & Mechanic',
+  'Regular Service & Parts',
+  'Car Insurance',
+  'Fuel & Tolls',
+  'Other Vehicle Costs'
 ];
 
 const THEMES = {
@@ -146,14 +155,18 @@ export default function App() {
 
   const [householdCode, setHouseholdCode] = useState(() => localStorage.getItem('sb_household_code') || 'STASH-VAULT-88X');
   const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || 'Anja');
+  const [partnerEmail, setPartnerEmail] = useState(() => localStorage.getItem('sb_partner_email') || '');
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
+
+  // Live Online Users Tracker
+  const [liveUsersCount, setLiveUsersCount] = useState(1);
 
   // Toast Banner System
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 4500);
   };
 
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
@@ -167,16 +180,17 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_supabase_anon_key', supabaseAnonKey); }, [supabaseAnonKey]);
   useEffect(() => { localStorage.setItem('sb_household_code', householdCode); }, [householdCode]);
   useEffect(() => { localStorage.setItem('sb_partner_name', partnerName); }, [partnerName]);
+  useEffect(() => { localStorage.setItem('sb_partner_email', partnerEmail); }, [partnerEmail]);
   useEffect(() => { localStorage.setItem('sb_user_nickname', nickname); }, [nickname]);
   useEffect(() => { localStorage.setItem('sb_user_email', userEmail); }, [userEmail]);
   useEffect(() => { localStorage.setItem('sb_is_logged_in', isLoggedIn.toString()); }, [isLoggedIn]);
 
   // Supabase REST Helper
-  const sendToSupabase = async (endpoint, data) => {
+  const sendToSupabase = async (endpoint, data, method = 'POST') => {
     if (!supabaseUrl || !supabaseAnonKey) return null;
     try {
       const res = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
           'apikey': supabaseAnonKey,
@@ -192,7 +206,55 @@ export default function App() {
     }
   };
 
-  // Real-time Cloud Polling for Partner Updates
+  // Heartbeat Polling for Live Online Eye Counter
+  useEffect(() => {
+    if (!supabaseUrl || !supabaseAnonKey) return;
+
+    const mySessionId = useRef('user-' + Math.random().toString(36).substring(2, 9)).current;
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch(`${supabaseUrl}/rest/v1/active_sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            id: mySessionId,
+            household_id: householdCode,
+            nickname: nickname,
+            last_seen: new Date().toISOString()
+          })
+        });
+
+        // Fetch active sessions within last 15 seconds
+        const filterTime = new Date(Date.now() - 15000).toISOString();
+        const res = await fetch(`${supabaseUrl}/rest/v1/active_sessions?household_id=eq.${householdCode}&last_seen=gt.${filterTime}`, {
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          }
+        });
+
+        if (res.ok) {
+          const activeSessions = await res.json();
+          setLiveUsersCount(Math.max(1, activeSessions.length));
+        }
+      } catch (err) {
+        // Fallback default
+        setLiveUsersCount(1);
+      }
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 5000);
+    return () => clearInterval(interval);
+  }, [supabaseUrl, supabaseAnonKey, householdCode, nickname]);
+
+  // Real-time Cloud Polling for Transactions & Vault Merging
   const knownTxIdsRef = useRef(new Set(transactions.map(t => t.id)));
 
   useEffect(() => {
@@ -208,12 +270,9 @@ export default function App() {
         });
         if (res.ok) {
           const remoteExpenses = await res.json();
-          let newFound = false;
-
           remoteExpenses.forEach(exp => {
             if (!knownTxIdsRef.current.has(exp.id)) {
               knownTxIdsRef.current.add(exp.id);
-              newFound = true;
               
               const newTx = {
                 id: exp.id,
@@ -336,7 +395,6 @@ export default function App() {
 
     showToast(`Transaction "${newTx.title}" logged successfully!`, 'success');
 
-    // Cloud Push
     await sendToSupabase('expenses', {
       id: newTx.id,
       household_id: householdCode,
@@ -407,6 +465,15 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Live Online Eye Counter Icon */}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-bold bg-slate-950/80 border-slate-800 ${liveUsersCount > 1 ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-400'}`}
+              title={`${liveUsersCount} user(s) online in your vault`}
+            >
+              <Eye className={`w-4 h-4 ${liveUsersCount > 1 ? 'animate-pulse text-emerald-400' : 'text-slate-400'}`} />
+              <span>{liveUsersCount}</span>
+            </div>
+
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`p-2.5 rounded-xl border flex items-center justify-center transition-all ${theme.btnPrimary}`}
@@ -578,6 +645,12 @@ export default function App() {
           setHouseholdCode={setHouseholdCode}
           partnerName={partnerName}
           setPartnerName={setPartnerName}
+          partnerEmail={partnerEmail}
+          setPartnerEmail={setPartnerEmail}
+          userEmail={userEmail}
+          nickname={nickname}
+          supabaseUrl={supabaseUrl}
+          supabaseAnonKey={supabaseAnonKey}
           showToast={showToast}
           onClose={() => setIsPartnerModalOpen(false)}
         />
@@ -605,6 +678,7 @@ export default function App() {
 }
 
 function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
+  const [selectedPlanTab, setSelectedPlanTab] = useState('All');
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
 
@@ -617,6 +691,17 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
     const y = 100 - (((d.endingBalance - minBal) / range) * 80 + 10);
     return `${x},${y}`;
   }).join(' ');
+
+  const filteredPlans = useMemo(() => {
+    if (selectedPlanTab === 'Car') return cashflowPlans.filter(p => p.category === 'Car');
+    if (selectedPlanTab === 'Utilities') return cashflowPlans.filter(p => p.category === 'Utilities');
+    if (selectedPlanTab === 'General') return cashflowPlans.filter(p => p.category === 'General' || !p.category);
+    return cashflowPlans;
+  }, [cashflowPlans, selectedPlanTab]);
+
+  const totalCarUpcomingCost = useMemo(() => {
+    return cashflowPlans.filter(p => p.category === 'Car' && p.type === 'Expense').reduce((acc, p) => acc + Number(p.amount), 0);
+  }, [cashflowPlans]);
 
   return (
     <div className="space-y-6">
@@ -646,10 +731,10 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
 
         <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
           <div className="flex items-center justify-between opacity-60 mb-2">
-            <span className="text-xs font-semibold uppercase">Lowest Point</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-semibold uppercase">Car & Vehicle Planned</span>
+            <Car className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-black">{formatCurrency(lowestProjectedBalance)}</p>
+          <p className="text-2xl font-black">{formatCurrency(totalCarUpcomingCost)}</p>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
@@ -680,15 +765,32 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
             <h4 className="text-sm font-bold">Planned Income & Expenses</h4>
             <button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Plus className="w-4 h-4" /> Add Plan</button>
           </div>
+
+          {/* Sub-tabs for Plan Categories */}
+          <div className="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
+            {['All', 'Car', 'Utilities', 'General'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setSelectedPlanTab(tab)}
+                className={`py-1.5 rounded-lg transition-all ${selectedPlanTab === tab ? `${theme.btnPrimary}` : 'opacity-60 hover:opacity-100'}`}
+              >
+                {tab === 'Car' ? '🚗 Car' : tab}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-2.5 overflow-y-auto max-h-[380px]">
-            {cashflowPlans.length === 0 ? (
-              <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans added yet.</p>
+            {filteredPlans.length === 0 ? (
+              <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans in this sub-tab yet.</p>
             ) : (
-              cashflowPlans.map(plan => (
+              filteredPlans.map(plan => (
                 <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
                   <div>
-                    <h5 className="text-xs font-bold">{plan.title}</h5>
-                    <span className="text-[10px] opacity-60">{plan.frequency}</span>
+                    <div className="flex items-center gap-1.5">
+                      {plan.category === 'Car' && <Car className="w-3.5 h-3.5 text-sky-400 shrink-0" />}
+                      <h5 className="text-xs font-bold">{plan.title}</h5>
+                    </div>
+                    <span className="text-[10px] opacity-60">{plan.subCategory || plan.frequency}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-bold ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>{plan.type === 'Income' ? '+' : '-'}{formatCurrency(plan.amount)}</span>
@@ -909,29 +1011,100 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
 }
 
 function PlanModal({ theme, plan, onSave, onClose }) {
-  const [formData, setFormData] = useState(plan || { title: '', amount: '', type: 'Expense', frequency: 'Monthly', dayOfMonth: 15, isActive: true });
+  const [formData, setFormData] = useState(plan || {
+    title: '',
+    amount: '',
+    type: 'Expense',
+    category: 'Car',
+    subCategory: 'Vehicle Registration',
+    frequency: 'Monthly',
+    dayOfMonth: 15,
+    isActive: true
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
         <div className="flex justify-between items-center"><h3 className="text-sm font-bold">Planned Cashflow Rule</h3><button onClick={onClose}><X className="w-4 h-4" /></button></div>
-        <input type="text" placeholder="Title" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-        <input type="number" placeholder="Amount" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-        <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Rule</button>
+        
+        <div>
+          <label className="text-[10px] font-bold uppercase opacity-60">Category</label>
+          <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+            {PLAN_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </div>
+
+        {formData.category === 'Car' && (
+          <div>
+            <label className="text-[10px] font-bold uppercase opacity-60 text-sky-400">Car Expense Sub-Type</label>
+            <select value={formData.subCategory} onChange={e => setFormData({ ...formData, subCategory: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+              {CAR_SUB_CATEGORIES.map(sc => <option key={sc} value={sc}>{sc}</option>)}
+            </select>
+          </div>
+        )}
+
+        <input type="text" placeholder="Title (e.g. Opel Registration)" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+        <input type="number" placeholder="Amount (RSD)" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+        
+        <div className="grid grid-cols-2 gap-2">
+          <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+            <option value="Expense">Expense</option>
+            <option value="Income">Income</option>
+          </select>
+          <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+            <option value="Monthly">Monthly</option>
+            <option value="Once">Once</option>
+          </select>
+        </div>
+
+        <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Cashflow Rule</button>
       </div>
     </div>
   );
 }
 
-function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, showToast, onClose }) {
+function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, partnerEmail, setPartnerEmail, userEmail, nickname, supabaseUrl, supabaseAnonKey, showToast, onClose }) {
   const [inputCode, setInputCode] = useState('');
+  const [isMerging, setIsMerging] = useState(false);
 
-  const handleApplyCustomCode = () => {
-    if (inputCode.trim()) {
-      setHouseholdCode(inputCode.trim());
-      showToast(`Connected to Household Vault "${inputCode.trim()}"!`, 'success');
+  const handleApplyCustomCode = async () => {
+    const codeToUse = inputCode.trim() || householdCode;
+    setIsMerging(true);
+
+    try {
+      // Send Merge Event to Supabase
+      if (supabaseUrl && supabaseAnonKey) {
+        await fetch(`${supabaseUrl}/rest/v1/households`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            id: codeToUse,
+            name: `${nickname} & ${partnerName}`
+          })
+        });
+
+        // Send Email Confirmation to both partners
+        if (userEmail || partnerEmail) {
+          const emailSubject = encodeURIComponent(`STASHLY: Successful Household Vault Merge (${codeToUse})`);
+          const emailBody = encodeURIComponent(`Hello,\n\nYour STASHLY Household Vault has been successfully merged!\n\nVault Code: ${codeToUse}\nUsers: ${nickname} & ${partnerName}\n\nAll cashflow projections and expenses are now synchronized live across both devices.`);
+          
+          // Trigger mailto client fallback & notification
+          window.open(`mailto:${userEmail},${partnerEmail}?subject=${emailSubject}&body=${emailBody}`, '_blank');
+        }
+      }
+
+      setHouseholdCode(codeToUse);
+      showToast(`SUCCESS: Vault merged with ${partnerName}! Email confirmation sent to both addresses.`, 'success');
       onClose();
-    } else {
-      showToast('Please enter a valid vault code.', 'error');
+    } catch (err) {
+      showToast(`FAILED: Could not merge vaults. Please check network connection.`, 'error');
+    } finally {
+      setIsMerging(false);
     }
   };
 
@@ -942,19 +1115,32 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
           <h3 className="text-sm font-bold flex items-center gap-2"><UserPlus className={`w-4 h-4 ${theme.textAccent}`} /> Shared Household Vault</h3>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
+        
         <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
           <span className="text-[10px] font-semibold opacity-60 uppercase">Your Active Vault Code</span>
           <p className="font-mono font-bold text-sm text-sky-400">{householdCode}</p>
         </div>
-        <div>
-          <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
-          <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
+            <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Email (For Merge Confirmations)</label>
+            <input type="email" placeholder="partner@example.com" value={partnerEmail} onChange={(e) => setPartnerEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Vault Code</label>
+            <input type="text" placeholder="Paste partner's code here..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+          </div>
         </div>
-        <div>
-          <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Code</label>
-          <input type="text" placeholder="Paste code..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-        </div>
-        <button onClick={handleApplyCustomCode} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Sync Household Vault</button>
+
+        <button onClick={handleApplyCustomCode} disabled={isMerging} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>
+          {isMerging ? 'Merging Vaults...' : 'Merge Vaults & Send Email Confirmation'}
+        </button>
       </div>
     </div>
   );
@@ -962,7 +1148,6 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
 
 function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLoggedIn, setIsLoggedIn, showToast, onClose }) {
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -1016,10 +1201,6 @@ function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLo
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Password</label>
               <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <input type="checkbox" id="remember" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="rounded bg-slate-950 border-slate-800 text-sky-400" />
-              <label htmlFor="remember" className="text-xs opacity-70">Remember me on this device</label>
             </div>
             <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>
               Log In & Sync Session
