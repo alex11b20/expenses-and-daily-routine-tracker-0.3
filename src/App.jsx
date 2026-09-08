@@ -43,7 +43,8 @@ import {
   Eye,
   ChevronDown,
   ChevronUp,
-  ListTree
+  ListTree,
+  QrCode
 } from 'lucide-react';
 
 const WORLD_CURRENCIES = [
@@ -71,6 +72,23 @@ const CATEGORIES = [
   { id: 'Health', label: 'Health & Medical', icon: '💊' },
   { id: 'Salary', label: 'Salary & Income', icon: '💼' },
   { id: 'Other', label: 'Other Expenses', icon: '📦' }
+];
+
+const PLAN_CATEGORIES = [
+  { id: 'General', label: 'General Expense / Income', icon: '📦' },
+  { id: 'Car', label: 'Car & Vehicle (Repair, Reg, Insurance)', icon: '🚗' },
+  { id: 'Utilities', label: 'Utilities & Household Bills', icon: '⚡' },
+  { id: 'Housing', label: 'Rent & Housing', icon: '🏠' },
+  { id: 'Salary', label: 'Salary & Income', icon: '💼' }
+];
+
+const CAR_SUB_CATEGORIES = [
+  'Vehicle Registration',
+  'Repairs & Mechanic',
+  'Regular Service & Parts',
+  'Car Insurance',
+  'Fuel & Tolls',
+  'Other Vehicle Costs'
 ];
 
 const THEMES = {
@@ -112,13 +130,6 @@ const THEMES = {
   }
 };
 
-const FUN_FACTS = [
-  "Did you know? The first paper money was issued in China over 1,000 years ago during the Song Dynasty!",
-  "Pro tip: Waiting 24 hours before buying non-essential items reduces impulse buying by up to 70%.",
-  "Fun fact: The word 'bankruptcy' comes from Italian 'banca rotta', meaning 'broken bench'!",
-  "Financial tip: Building a 3-month emergency fund is like putting your budget in body armor."
-];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('cashflow');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -133,13 +144,13 @@ export default function App() {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
   };
 
-  // Profile & Auth
+  // Auth & Profile State
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('sb_is_logged_in') === 'true');
   const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || 'Aleksandar');
-  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || 'alex@stashly.com');
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || '');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Financial States
+  // Financial Data
   const [startingBalance, setStartingBalance] = useState(() => {
     const saved = localStorage.getItem('sb_starting_balance');
     return saved !== null ? Number(saved) : 100000;
@@ -152,22 +163,7 @@ export default function App() {
 
   const [cashflowPlans, setCashflowPlans] = useState(() => {
     const saved = localStorage.getItem('sb_cashflow_plans');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'plan-car-demo',
-        title: 'CAR',
-        amount: 300000,
-        type: 'Expense',
-        frequency: 'Monthly',
-        dayOfMonth: 15,
-        isActive: true,
-        subExpenses: [
-          { id: 'sub-1', description: 'Vehicle Registration & Inspection', amount: 45000 },
-          { id: 'sub-2', description: 'Mechanic Repairs & Servicing', amount: 180000 },
-          { id: 'sub-3', description: 'New Tires & Alignment', amount: 75000 }
-        ]
-      }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [shoppingLists, setShoppingLists] = useState(() => {
@@ -190,10 +186,19 @@ export default function App() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
-  const [subExpensesPlan, setSubExpensesPlan] = useState(null); // Active plan for Sub-Expense breakdown modal
+  const [subExpensesPlan, setSubExpensesPlan] = useState(null);
 
-  const [householdCode, setHouseholdCode] = useState(() => localStorage.getItem('sb_household_code') || 'STASH-VAULT-88X');
-  const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || 'Anja');
+  // Vault Generation & State
+  const [householdCode, setHouseholdCode] = useState(() => {
+    const existing = localStorage.getItem('sb_household_code');
+    if (existing && existing !== 'STASH-VAULT-88X') return existing;
+    const newCode = 'STASH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    localStorage.setItem('sb_household_code', newCode);
+    return newCode;
+  });
+
+  const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || '');
+  const [partnerEmail, setPartnerEmail] = useState(() => localStorage.getItem('sb_partner_email') || '');
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
   // Live Users Online Eye Counter
@@ -223,26 +228,51 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_user_email', userEmail); }, [userEmail]);
   useEffect(() => { localStorage.setItem('sb_is_logged_in', isLoggedIn.toString()); }, [isLoggedIn]);
 
-  // Supabase REST Helper
-  const sendToSupabase = async (endpoint, data) => {
-    if (!supabaseUrl || !supabaseAnonKey) return null;
-    try {
-      const res = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(data)
-      });
-      return await res.json();
-    } catch (e) {
-      console.error('Supabase Sync Error:', e);
-      return null;
-    }
-  };
+  // Heartbeat Polling for Live Online Eye Counter
+  useEffect(() => {
+    if (!supabaseUrl || !supabaseAnonKey) return;
+
+    const mySessionId = useRef('user-' + Math.random().toString(36).substring(2, 9)).current;
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch(`${supabaseUrl}/rest/v1/active_sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            id: mySessionId,
+            household_id: householdCode,
+            nickname: nickname,
+            last_seen: new Date().toISOString()
+          })
+        });
+
+        const filterTime = new Date(Date.now() - 15000).toISOString();
+        const res = await fetch(`${supabaseUrl}/rest/v1/active_sessions?household_id=eq.${householdCode}&last_seen=gt.${filterTime}`, {
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          }
+        });
+
+        if (res.ok) {
+          const activeSessions = await res.json();
+          setLiveUsersCount(Math.max(1, activeSessions.length));
+        }
+      } catch (err) {
+        setLiveUsersCount(1);
+      }
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 5000);
+    return () => clearInterval(interval);
+  }, [supabaseUrl, supabaseAnonKey, householdCode, nickname]);
 
   // Real-time Cloud Polling for Transactions & Vault Synchronization
   const knownTxIdsRef = useRef(new Set(transactions.map(t => t.id)));
@@ -272,13 +302,18 @@ export default function App() {
                 category: exp.category,
                 merchant: exp.merchant,
                 date: exp.date,
-                creator: exp.merchant === nickname ? nickname : partnerName
+                creator: exp.merchant === nickname ? nickname : (partnerName || 'Partner')
               };
 
               setTransactions(prev => [newTx, ...prev.filter(t => t.id !== newTx.id)]);
               
+              // Automatically sync the live current balance if the incoming transaction is from today
+              if (exp.date === new Date().toISOString().split('T')[0]) {
+                setStartingBalance(prev => exp.type === 'Income' ? Number(prev) + Number(exp.amount) : Number(prev) - Number(exp.amount));
+              }
+
               if (exp.merchant !== nickname) {
-                showToast(`🔔 ${partnerName} logged a new transaction: ${exp.title} (${formatCurrency(exp.amount)})`, 'info');
+                showToast(`🔔 ${partnerName || 'Partner'} logged a new transaction: ${exp.title} (${formatCurrency(exp.amount)})`, 'info');
               }
             }
           });
@@ -385,16 +420,27 @@ export default function App() {
 
     showToast(`Transaction "${newTx.title}" logged successfully!`, 'success');
 
-    await sendToSupabase('expenses', {
-      id: newTx.id,
-      household_id: householdCode,
-      title: newTx.title,
-      amount: newTx.amount,
-      type: newTx.type,
-      category: newTx.category,
-      merchant: nickname,
-      date: newTx.date
-    });
+    if (supabaseUrl && supabaseAnonKey) {
+      await fetch(`${supabaseUrl}/rest/v1/expenses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          id: newTx.id,
+          household_id: householdCode,
+          title: newTx.title,
+          amount: newTx.amount,
+          type: newTx.type,
+          category: newTx.category,
+          merchant: nickname,
+          date: newTx.date
+        })
+      });
+    }
   };
 
   const handleDeleteTransaction = (id) => {
@@ -419,7 +465,6 @@ export default function App() {
     showToast('Cashflow rule deleted.', 'info');
   };
 
-  // Update Sub-Expenses of a specific Plan
   const handleUpdateSubExpenses = (planId, newSubExpenses) => {
     const totalSubSum = newSubExpenses.reduce((acc, item) => acc + Number(item.amount || 0), 0);
 
@@ -449,7 +494,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen font-sans antialiased bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100">
-      {/* Toast Feedback Banner */}
       {toast && (
         <div className="fixed top-5 right-5 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
           <div className={`p-4 rounded-2xl border shadow-2xl flex items-center gap-3 text-xs font-bold ${toast.type === 'success' ? 'bg-emerald-950 border-emerald-500 text-emerald-200' : toast.type === 'error' ? 'bg-rose-950 border-rose-500 text-rose-200' : 'bg-sky-950 border-sky-500 text-sky-200'}`}>
@@ -475,7 +519,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Live Online Users Counter (Eye Icon) */}
             <div
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-bold bg-slate-950/80 border-slate-800 ${liveUsersCount > 1 ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-400'}`}
               title={`${liveUsersCount} user(s) live in your vault`}
@@ -613,7 +656,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Sub-Expense Breakdown Modal */}
       {subExpensesPlan && (
         <SubExpensesModal
           theme={theme}
@@ -683,6 +725,12 @@ export default function App() {
           setHouseholdCode={setHouseholdCode}
           partnerName={partnerName}
           setPartnerName={setPartnerName}
+          partnerEmail={partnerEmail}
+          setPartnerEmail={setPartnerEmail}
+          userEmail={userEmail}
+          nickname={nickname}
+          supabaseUrl={supabaseUrl}
+          supabaseAnonKey={supabaseAnonKey}
           showToast={showToast}
           onClose={() => setIsPartnerModalOpen(false)}
         />
@@ -710,6 +758,7 @@ export default function App() {
 }
 
 function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan, onOpenSubExpenses }) {
+  const [selectedPlanTab, setSelectedPlanTab] = useState('All');
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
 
@@ -722,6 +771,17 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
     const y = 100 - (((d.endingBalance - minBal) / range) * 80 + 10);
     return `${x},${y}`;
   }).join(' ');
+
+  const filteredPlans = useMemo(() => {
+    if (selectedPlanTab === 'Car') return cashflowPlans.filter(p => p.category === 'Car');
+    if (selectedPlanTab === 'Utilities') return cashflowPlans.filter(p => p.category === 'Utilities');
+    if (selectedPlanTab === 'General') return cashflowPlans.filter(p => p.category === 'General' || !p.category);
+    return cashflowPlans;
+  }, [cashflowPlans, selectedPlanTab]);
+
+  const totalCarUpcomingCost = useMemo(() => {
+    return cashflowPlans.filter(p => p.category === 'Car' && p.type === 'Expense').reduce((acc, p) => acc + Number(p.amount), 0);
+  }, [cashflowPlans]);
 
   return (
     <div className="space-y-6">
@@ -751,10 +811,10 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
 
         <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
           <div className="flex items-center justify-between opacity-60 mb-2">
-            <span className="text-xs font-semibold uppercase">Lowest Point</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-semibold uppercase">Car & Vehicle Planned</span>
+            <Car className="w-4 h-4 text-sky-400" />
           </div>
-          <p className="text-2xl font-black">{formatCurrency(lowestProjectedBalance)}</p>
+          <p className="text-2xl font-black">{formatCurrency(totalCarUpcomingCost)}</p>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
@@ -785,32 +845,44 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
             <h4 className="text-sm font-bold">Planned Income & Expenses</h4>
             <button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Plus className="w-4 h-4" /> Add Plan</button>
           </div>
+
+          <div className="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
+            {['All', 'Car', 'Utilities', 'General'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setSelectedPlanTab(tab)}
+                className={`py-1.5 rounded-lg transition-all ${selectedPlanTab === tab ? `${theme.btnPrimary}` : 'opacity-60 hover:opacity-100'}`}
+              >
+                {tab === 'Car' ? '🚗 Car' : tab}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-3 overflow-y-auto max-h-[420px]">
-            {cashflowPlans.length === 0 ? (
-              <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans added yet.</p>
+            {filteredPlans.length === 0 ? (
+              <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans in this sub-tab yet.</p>
             ) : (
-              cashflowPlans.map(plan => {
+              filteredPlans.map(plan => {
                 const subCount = plan.subExpenses ? plan.subExpenses.length : 0;
                 return (
                   <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="cursor-pointer" onClick={() => onOpenSubExpenses(plan)}>
                         <h5 className="text-xs font-bold flex items-center gap-1.5 hover:underline">
-                          {plan.title.toUpperCase() === 'CAR' && <Car className="w-3.5 h-3.5 text-sky-400" />}
+                          {plan.category === 'Car' && <Car className="w-3.5 h-3.5 text-sky-400 shrink-0" />}
                           {plan.title}
                         </h5>
-                        <span className="text-[10px] opacity-60">{plan.frequency} • {subCount > 0 ? `${subCount} sub-item(s)` : 'Click to add sub-expenses'}</span>
+                        <span className="text-[10px] opacity-60">Due: {plan.dayOfMonth}th • {subCount > 0 ? `${subCount} sub-item(s)` : 'Click to add sub-expenses'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-bold ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {plan.type === 'Income' ? '+' : '-'}{formatCurrency(plan.amount)}
                         </span>
-                        <button onClick={() => onOpenSubExpenses(plan)} title="Sub-Expenses Breakdown" className="text-sky-400 hover:text-sky-300 p-1"><ListTree className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => onOpenSubExpenses(plan)} title="Breakdown / Sub-Expenses" className="text-sky-400 hover:text-sky-300 p-1"><ListTree className="w-3.5 h-3.5" /></button>
                         <button onClick={() => onDeletePlan(plan.id)} title="Delete Plan" className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
 
-                    {/* Quick Inline List of Sub-Expenses */}
                     {subCount > 0 && (
                       <div className="pt-2 border-t border-slate-900 space-y-1">
                         {plan.subExpenses.map(sub => (
@@ -860,7 +932,6 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
   );
 }
 
-// Sub-Expense Breakdown Manager Modal
 function SubExpensesModal({ theme, plan, formatCurrency, onUpdate, onClose }) {
   const [subList, setSubList] = useState(plan.subExpenses || []);
   const [description, setDescription] = useState('');
@@ -906,7 +977,7 @@ function SubExpensesModal({ theme, plan, formatCurrency, onUpdate, onClose }) {
         <form onSubmit={handleAddSubItem} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input
             type="text"
-            placeholder="Sub-expense Description (e.g. Registration)"
+            placeholder="Sub-expense Description (e.g. Brakes)"
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -1344,11 +1415,6 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
         </div>
       </div>
 
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold flex items-center gap-2"><DollarSign className={`w-5 h-5 ${theme.textAccent}`} /> Starting Balance</h3>
-        <input type="number" value={startingBalance} onChange={(e) => setStartingBalance(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none" />
-      </div>
-
       <div className="text-right pt-2">
         <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-500 hover:text-slate-300 font-mono flex items-center gap-1.5 ml-auto"><Lock className="w-3.5 h-3.5" /> 🔒 Master Gemini & Supabase Config</button>
       </div>
@@ -1357,13 +1423,51 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
 }
 
 function PlanModal({ theme, plan, onSave, onClose }) {
-  const [formData, setFormData] = useState(plan || { title: '', amount: '', type: 'Expense', frequency: 'Monthly', dayOfMonth: 15, isActive: true });
+  const [formData, setFormData] = useState(plan || {
+    title: '',
+    amount: '',
+    type: 'Expense',
+    category: 'Car',
+    subCategory: 'Vehicle Registration',
+    frequency: 'Monthly',
+    dayOfMonth: 15,
+    isActive: true
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
         <div className="flex justify-between items-center"><h3 className="text-sm font-bold">Planned Cashflow Rule</h3><button onClick={onClose}><X className="w-4 h-4" /></button></div>
-        <input type="text" placeholder="Title (e.g. CAR, Electricity)" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-        <input type="number" placeholder="Amount" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+        
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] font-bold uppercase opacity-60">Category</label>
+            <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+              {PLAN_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase opacity-60">Bill Due Date</label>
+            <select value={formData.dayOfMonth} onChange={e => setFormData({ ...formData, dayOfMonth: Number(e.target.value) })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                <option key={day} value={day}>Day {day}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {formData.category === 'Car' && (
+          <div>
+            <label className="text-[10px] font-bold uppercase opacity-60 text-sky-400">Car Expense Sub-Type</label>
+            <select value={formData.subCategory} onChange={e => setFormData({ ...formData, subCategory: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+              {CAR_SUB_CATEGORIES.map(sc => <option key={sc} value={sc}>{sc}</option>)}
+            </select>
+          </div>
+        )}
+
+        <input type="text" placeholder="Title (e.g. Opel Registration)" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+        <input type="number" placeholder="Amount (RSD)" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+        
         <div className="grid grid-cols-2 gap-2">
           <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
             <option value="Expense">Expense</option>
@@ -1371,26 +1475,54 @@ function PlanModal({ theme, plan, onSave, onClose }) {
           </select>
           <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
             <option value="Monthly">Monthly</option>
-            <option value="Weekly">Weekly</option>
             <option value="Once">Once</option>
           </select>
         </div>
-        <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Rule</button>
+
+        <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Cashflow Rule</button>
       </div>
     </div>
   );
 }
 
-function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, showToast, onClose }) {
+function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, partnerEmail, setPartnerEmail, userEmail, nickname, supabaseUrl, supabaseAnonKey, showToast, onClose }) {
   const [inputCode, setInputCode] = useState('');
+  const [isMerging, setIsMerging] = useState(false);
 
-  const handleApplyCustomCode = () => {
-    if (inputCode.trim()) {
-      setHouseholdCode(inputCode.trim());
-      showToast(`SUCCESS: Merged with vault code "${inputCode.trim()}"!`, 'success');
+  const handleApplyCustomCode = async () => {
+    const codeToUse = inputCode.trim() || householdCode;
+    setIsMerging(true);
+
+    try {
+      if (supabaseUrl && supabaseAnonKey) {
+        await fetch(`${supabaseUrl}/rest/v1/households`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            id: codeToUse,
+            name: `${nickname} & ${partnerName || 'Partner'}`
+          })
+        });
+
+        if (userEmail || partnerEmail) {
+          const emailSubject = encodeURIComponent(`STASHLY: Vault Merge Successful (${codeToUse})`);
+          const emailBody = encodeURIComponent(`Hello,\n\nYour STASHLY Household Vault has been successfully merged!\n\nVault Code: ${codeToUse}\nUsers: ${nickname} & ${partnerName || 'Partner'}\n\nAll cashflow projections and expenses are now synchronized live across both devices.`);
+          window.open(`mailto:${userEmail},${partnerEmail}?subject=${emailSubject}&body=${emailBody}`, '_blank');
+        }
+      }
+
+      setHouseholdCode(codeToUse);
+      showToast(`SUCCESS: Vault merged! Email confirmation sent.`, 'success');
       onClose();
-    } else {
-      showToast('Please enter a valid vault code.', 'error');
+    } catch (err) {
+      showToast(`FAILED: Could not merge vaults. Check network connection.`, 'error');
+    } finally {
+      setIsMerging(false);
     }
   };
 
@@ -1401,19 +1533,40 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
           <h3 className="text-sm font-bold flex items-center gap-2"><UserPlus className={`w-4 h-4 ${theme.textAccent}`} /> Shared Household Vault</h3>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
-        <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
+        
+        <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
           <span className="text-[10px] font-semibold opacity-60 uppercase">Your Active Vault Code</span>
           <p className="font-mono font-bold text-sm text-sky-400">{householdCode}</p>
+          
+          {/* QR Code Stub */}
+          <div className="pt-2 border-t border-slate-800 flex items-center gap-3">
+            <div className="bg-white p-2 rounded-lg flex items-center justify-center shadow-inner">
+               <QrCode className="w-12 h-12 text-slate-950" />
+            </div>
+            <p className="text-[10px] opacity-60 leading-tight">Ready for QR Scanning.<br/>Have your partner scan this to automatically merge vaults.</p>
+          </div>
         </div>
-        <div>
-          <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
-          <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
+            <input type="text" placeholder="e.g. Partner Name" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Email (For Merge Alerts)</label>
+            <input type="email" placeholder="partner@example.com" value={partnerEmail} onChange={(e) => setPartnerEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Vault Code</label>
+            <input type="text" placeholder="Paste partner's code here..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+          </div>
         </div>
-        <div>
-          <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Code</label>
-          <input type="text" placeholder="Paste code..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-        </div>
-        <button onClick={handleApplyCustomCode} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Sync Household Vault</button>
+
+        <button onClick={handleApplyCustomCode} disabled={isMerging} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>
+          {isMerging ? 'Merging Vaults...' : 'Merge Vaults & Send Email'}
+        </button>
       </div>
     </div>
   );
@@ -1425,7 +1578,7 @@ function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLo
   const handleLogin = (e) => {
     e.preventDefault();
     if (!userEmail || !password) {
-      showToast('Login Failed: Email and Password required!', 'error');
+      showToast('Login Failed: Email and Password are required!', 'error');
       return;
     }
 
