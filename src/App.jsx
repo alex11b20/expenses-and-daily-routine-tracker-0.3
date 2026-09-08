@@ -146,14 +146,14 @@ export default function App() {
 
   // Auth & Profile State
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('sb_is_logged_in') === 'true');
-  const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || 'Aleksandar');
+  const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || '');
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || '');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Financial Data
   const [startingBalance, setStartingBalance] = useState(() => {
     const saved = localStorage.getItem('sb_starting_balance');
-    return saved !== null ? Number(saved) : 100000;
+    return saved !== null ? Number(saved) : 0;
   });
 
   const [transactions, setTransactions] = useState(() => {
@@ -180,7 +180,7 @@ export default function App() {
   
   // Config Keys
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('sb_gemini_key') || '');
-  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('sb_supabase_url') || 'https://yrendrnoivykevbyjmo.supabase.co');
+  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('sb_supabase_url') || '');
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => localStorage.getItem('sb_supabase_anon_key') || '');
 
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -188,20 +188,27 @@ export default function App() {
   const [editingPlan, setEditingPlan] = useState(null);
   const [subExpensesPlan, setSubExpensesPlan] = useState(null);
 
-  // Vault Generation & State
+  // Hard Override for Dummy Vault Codes/Names stuck in localStorage
   const [householdCode, setHouseholdCode] = useState(() => {
-    const existing = localStorage.getItem('sb_household_code');
-    if (existing && existing !== 'STASH-VAULT-88X') return existing;
-    const newCode = 'STASH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    localStorage.setItem('sb_household_code', newCode);
-    return newCode;
+    const saved = localStorage.getItem('sb_household_code');
+    if (!saved || saved === 'STASH-VAULT-88X') {
+      const newCode = 'STASH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      localStorage.setItem('sb_household_code', newCode);
+      return newCode;
+    }
+    return saved;
   });
 
-  const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || '');
+  const [partnerName, setPartnerName] = useState(() => {
+    const saved = localStorage.getItem('sb_partner_name');
+    if (saved === 'Anja') return '';
+    return saved || '';
+  });
+  
   const [partnerEmail, setPartnerEmail] = useState(() => localStorage.getItem('sb_partner_email') || '');
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
-  // Live Users Online Eye Counter
+  // Live Users Online Tracker
   const [liveUsersCount, setLiveUsersCount] = useState(1);
 
   // Toast Feedback System
@@ -247,7 +254,7 @@ export default function App() {
           body: JSON.stringify({
             id: mySessionId,
             household_id: householdCode,
-            nickname: nickname,
+            nickname: nickname || 'User',
             last_seen: new Date().toISOString()
           })
         });
@@ -274,7 +281,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [supabaseUrl, supabaseAnonKey, householdCode, nickname]);
 
-  // Real-time Cloud Polling for Transactions & Vault Synchronization
+  // Real-time Cloud Polling for Transactions
   const knownTxIdsRef = useRef(new Set(transactions.map(t => t.id)));
 
   useEffect(() => {
@@ -307,13 +314,12 @@ export default function App() {
 
               setTransactions(prev => [newTx, ...prev.filter(t => t.id !== newTx.id)]);
               
-              // Automatically sync the live current balance if the incoming transaction is from today
               if (exp.date === new Date().toISOString().split('T')[0]) {
                 setStartingBalance(prev => exp.type === 'Income' ? Number(prev) + Number(exp.amount) : Number(prev) - Number(exp.amount));
               }
 
               if (exp.merchant !== nickname) {
-                showToast(`🔔 ${partnerName || 'Partner'} logged a new transaction: ${exp.title} (${formatCurrency(exp.amount)})`, 'info');
+                showToast(`🔔 ${partnerName || 'Partner'} logged a transaction: ${exp.title} (${formatCurrency(exp.amount)})`, 'info');
               }
             }
           });
@@ -451,10 +457,10 @@ export default function App() {
   const handleSavePlan = (planData) => {
     if (editingPlan) {
       setCashflowPlans(prev => prev.map(p => p.id === editingPlan.id ? { ...planData, id: editingPlan.id } : p));
-      showToast('Cashflow rule updated successfully!', 'success');
+      showToast('Cashflow plan updated successfully!', 'success');
     } else {
       setCashflowPlans(prev => [...prev, { ...planData, id: 'plan-' + Date.now(), subExpenses: [] }]);
-      showToast('New Cashflow rule added!', 'success');
+      showToast('New Cashflow plan added!', 'success');
     }
     setIsPlanModalOpen(false);
     setEditingPlan(null);
@@ -462,24 +468,18 @@ export default function App() {
 
   const handleDeletePlan = (id) => {
     setCashflowPlans(prev => prev.filter(p => p.id !== id));
-    showToast('Cashflow rule deleted.', 'info');
+    showToast('Cashflow plan deleted.', 'info');
   };
 
   const handleUpdateSubExpenses = (planId, newSubExpenses) => {
     const totalSubSum = newSubExpenses.reduce((acc, item) => acc + Number(item.amount || 0), 0);
-
     setCashflowPlans(prev => prev.map(p => {
       if (p.id === planId) {
-        return {
-          ...p,
-          subExpenses: newSubExpenses,
-          amount: newSubExpenses.length > 0 ? totalSubSum : p.amount
-        };
+        return { ...p, subExpenses: newSubExpenses, amount: newSubExpenses.length > 0 ? totalSubSum : p.amount };
       }
       return p;
     }));
-
-    showToast(`Sub-expenses updated! Main plan total synced to ${formatCurrency(totalSubSum)}`, 'success');
+    showToast(`Sub-items updated! Main plan total synced to ${formatCurrency(totalSubSum)}`, 'success');
   };
 
   const tabs = [
@@ -519,13 +519,16 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-bold bg-slate-950/80 border-slate-800 ${liveUsersCount > 1 ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-400'}`}
-              title={`${liveUsersCount} user(s) live in your vault`}
-            >
-              <Eye className={`w-4 h-4 ${liveUsersCount > 1 ? 'animate-pulse text-emerald-400' : 'text-slate-400'}`} />
-              <span>{liveUsersCount}</span>
-            </div>
+            {/* The Invisible Eye: Only renders if Partner is Online */}
+            {liveUsersCount > 1 && (
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-bold bg-emerald-950/80 text-emerald-400 border-emerald-500/40 animate-in fade-in"
+                title="Your partner is currently live in the app"
+              >
+                <Eye className="w-4 h-4 animate-pulse" />
+                <span>Partner Online</span>
+              </div>
+            )}
 
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -533,14 +536,6 @@ export default function App() {
               title="Menu"
             >
               <Menu className="w-5 h-5 stroke-[2.5]" />
-            </button>
-
-            <button
-              onClick={() => setIsPartnerModalOpen(true)}
-              className="p-2.5 rounded-xl border flex items-center gap-2 transition-all bg-slate-950/80 border-slate-800 hover:border-slate-700"
-              title="Shared Vault"
-            >
-              <UserPlus className={`w-5 h-5 ${partnerName ? theme.textAccent : 'text-slate-400'}`} />
             </button>
 
             <button
@@ -587,7 +582,6 @@ export default function App() {
             cashflowPlans={cashflowPlans}
             formatCurrency={formatCurrency}
             onOpenAddPlan={() => { setEditingPlan(null); setIsPlanModalOpen(true); }}
-            onEditPlan={(plan) => { setEditingPlan(plan); setIsPlanModalOpen(true); }}
             onDeletePlan={handleDeletePlan}
             onOpenSubExpenses={(plan) => setSubExpensesPlan(plan)}
           />
@@ -651,11 +645,14 @@ export default function App() {
             setNickname={setNickname}
             userEmail={userEmail}
             setUserEmail={setUserEmail}
+            householdCode={householdCode}
+            onOpenPartnerModal={() => setIsPartnerModalOpen(true)}
             showToast={showToast}
           />
         )}
       </main>
 
+      {/* Sub-Expenses & Sub-Income Modal (Triggered by clicking ANY plan card) */}
       {subExpensesPlan && (
         <SubExpensesModal
           theme={theme}
@@ -676,42 +673,18 @@ export default function App() {
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold uppercase opacity-60">Supabase Project URL</label>
-                <input
-                  type="text"
-                  placeholder="https://yrendrnoivykevbyjmo.supabase.co"
-                  value={supabaseUrl}
-                  onChange={(e) => setSupabaseUrl(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1"
-                />
+                <input type="text" placeholder="https://yrendrnoivykevbyjmo.supabase.co" value={supabaseUrl} onChange={(e) => setSupabaseUrl(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1" />
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase opacity-60">Supabase Publishable Key (Anon)</label>
-                <input
-                  type="password"
-                  placeholder="sb_publishable_1HRHJRf9C02r..."
-                  value={supabaseAnonKey}
-                  onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1"
-                />
+                <input type="password" placeholder="sb_publishable_1HRHJRf9C02r..." value={supabaseAnonKey} onChange={(e) => setSupabaseAnonKey(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1" />
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase opacity-60">Gemini AI OCR Key</label>
-                <input
-                  type="password"
-                  placeholder="AIzaSy..."
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1"
-                />
+                <input type="password" placeholder="AIzaSy..." value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none mt-1" />
               </div>
             </div>
-            <button
-              onClick={() => {
-                setShowAdminModal(false);
-                showToast('API Keys saved successfully!', 'success');
-              }}
-              className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}
-            >
+            <button onClick={() => { setShowAdminModal(false); showToast('API Keys saved successfully!', 'success'); }} className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>
               Save Master Keys
             </button>
           </div>
@@ -757,7 +730,7 @@ export default function App() {
   );
 }
 
-function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan, onOpenSubExpenses }) {
+function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onDeletePlan, onOpenSubExpenses }) {
   const [selectedPlanTab, setSelectedPlanTab] = useState('All');
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
@@ -865,34 +838,28 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
               filteredPlans.map(plan => {
                 const subCount = plan.subExpenses ? plan.subExpenses.length : 0;
                 return (
-                  <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="cursor-pointer" onClick={() => onOpenSubExpenses(plan)}>
-                        <h5 className="text-xs font-bold flex items-center gap-1.5 hover:underline">
-                          {plan.category === 'Car' && <Car className="w-3.5 h-3.5 text-sky-400 shrink-0" />}
+                  <div key={plan.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-slate-700 transition-all shadow-sm">
+                    {/* Make the entire top section click-to-open Sub Expenses */}
+                    <div className="flex items-start justify-between cursor-pointer" onClick={() => onOpenSubExpenses(plan)}>
+                      <div>
+                        <h5 className="text-sm font-bold flex items-center gap-1.5">
+                          {plan.category === 'Car' && <Car className="w-4 h-4 text-sky-400 shrink-0" />}
                           {plan.title}
                         </h5>
-                        <span className="text-[10px] opacity-60">Due: {plan.dayOfMonth}th • {subCount > 0 ? `${subCount} sub-item(s)` : 'Click to add sub-expenses'}</span>
+                        <span className="text-xs opacity-60">Due: {plan.dayOfMonth}th • {subCount > 0 ? `${subCount} item(s)` : 'Click to add sub-items'}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <div className="text-right">
+                        <span className={`text-sm font-black ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {plan.type === 'Income' ? '+' : '-'}{formatCurrency(plan.amount)}
                         </span>
-                        <button onClick={() => onOpenSubExpenses(plan)} title="Breakdown / Sub-Expenses" className="text-sky-400 hover:text-sky-300 p-1"><ListTree className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => onDeletePlan(plan.id)} title="Delete Plan" className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
-
-                    {subCount > 0 && (
-                      <div className="pt-2 border-t border-slate-900 space-y-1">
-                        {plan.subExpenses.map(sub => (
-                          <div key={sub.id} className="flex justify-between text-[11px] opacity-80">
-                            <span>• {sub.description}</span>
-                            <span className="font-mono">{formatCurrency(sub.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    
+                    {/* Separate Action Buttons row so clicks don't conflict */}
+                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800/60">
+                        <button onClick={(e) => { e.stopPropagation(); onOpenSubExpenses(plan); }} className="text-[10px] font-bold uppercase text-sky-400 hover:text-sky-300 tracking-wider">Manage List</button>
+                        <button onClick={(e) => { e.stopPropagation(); onDeletePlan(plan.id); }} className="text-[10px] font-bold uppercase text-rose-400 hover:text-rose-300 tracking-wider">Delete</button>
+                    </div>
                   </div>
                 );
               })
@@ -932,21 +899,19 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
   );
 }
 
+// Dedicated Sub-Expense / Sub-Income Viewer & Manager
 function SubExpensesModal({ theme, plan, formatCurrency, onUpdate, onClose }) {
   const [subList, setSubList] = useState(plan.subExpenses || []);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  
+  const isIncome = plan.type === 'Income';
 
   const handleAddSubItem = (e) => {
     e.preventDefault();
     if (!description || !amount) return;
 
-    const newItem = {
-      id: 'sub-' + Date.now(),
-      description,
-      amount: Number(amount)
-    };
-
+    const newItem = { id: 'sub-' + Date.now(), description, amount: Number(amount) };
     const updated = [...subList, newItem];
     setSubList(updated);
     onUpdate(updated);
@@ -966,57 +931,46 @@ function SubExpensesModal({ theme, plan, formatCurrency, onUpdate, onClose }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-sm font-bold flex items-center gap-2"><ListTree className={`w-4 h-4 ${theme.textAccent}`} /> Sub-Expenses Breakdown: {plan.title}</h3>
-            <p className="text-[11px] opacity-60">Add itemized parts & costs for this main expense</p>
+            <h3 className="text-base font-bold flex items-center gap-2"><ListTree className={`w-5 h-5 ${theme.textAccent}`} /> Sub-{isIncome ? 'Incomes' : 'Expenses'} Breakdown: {plan.title}</h3>
+            <p className="text-xs opacity-60 mt-1">Itemize all individual costs/revenues inside this main plan.</p>
           </div>
-          <button onClick={onClose}><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="p-1"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={handleAddSubItem} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input
-            type="text"
-            placeholder="Sub-expense Description (e.g. Brakes)"
-            required
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="sm:col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none"
-          />
-          <input
-            type="number"
-            placeholder="Amount"
-            required
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none"
-          />
-          <button type="submit" className={`sm:col-span-3 py-2 rounded-xl text-xs font-bold uppercase ${theme.btnPrimary}`}>
-            Add Sub-Expense Item
+          <input type="text" placeholder={`Description (e.g. ${isIncome ? 'Bonus' : 'Brakes'})`} required value={description} onChange={(e) => setDescription(e.target.value)} className="sm:col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none" />
+          <input type="number" placeholder="Amount" required value={amount} onChange={(e) => setAmount(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none" />
+          <button type="submit" className={`sm:col-span-3 py-2.5 rounded-xl text-xs font-bold uppercase ${theme.btnPrimary}`}>
+            Add Item to List
           </button>
         </form>
 
-        <div className="space-y-2 max-h-[250px] overflow-y-auto pt-2">
+        <div className="space-y-2 max-h-[300px] overflow-y-auto pt-2">
           {subList.length === 0 ? (
-            <p className="text-xs opacity-50 text-center py-6 border border-dashed border-slate-800 rounded-xl">No sub-expenses added yet.</p>
+            <p className="text-xs opacity-50 text-center py-6 border border-dashed border-slate-800 rounded-xl">No sub-items added yet.</p>
           ) : (
-            subList.map(item => (
-              <div key={item.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-bold">{item.description}</p>
+            subList.map((item, idx) => (
+              <div key={item.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-xs hover:bg-slate-800/40">
+                <div className="flex items-center gap-3">
+                  <span className="opacity-40 font-mono text-[10px]">{idx + 1}.</span>
+                  <p className="font-bold text-sm">{item.description}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono font-bold text-rose-400">-{formatCurrency(item.amount)}</span>
-                  <button onClick={() => handleDeleteSubItem(item.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <span className={`font-mono font-bold text-sm ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isIncome ? '+' : '-'}{formatCurrency(item.amount)}
+                  </span>
+                  <button onClick={() => handleDeleteSubItem(item.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             ))
           )}
         </div>
 
-        <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs font-bold">
-          <span>Calculated Main Expense Total:</span>
-          <span className="font-mono text-sm text-sky-400">{formatCurrency(calculatedTotal)}</span>
+        <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs font-bold">
+          <span className="uppercase opacity-60">Calculated Total:</span>
+          <span className="font-mono text-xl text-sky-400">{formatCurrency(calculatedTotal)}</span>
         </div>
       </div>
     </div>
@@ -1034,19 +988,8 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
     e.preventDefault();
     if (!title || !estimatedPrice) return;
 
-    setWishlist(prev => [{
-      id: 'wish-' + Date.now(),
-      title,
-      estimatedPrice: Number(estimatedPrice),
-      priority,
-      category,
-      notes,
-      createdAt: new Date().toISOString().split('T')[0]
-    }, ...prev]);
-
-    setTitle('');
-    setEstimatedPrice('');
-    setNotes('');
+    setWishlist(prev => [{ id: 'wish-' + Date.now(), title, estimatedPrice: Number(estimatedPrice), priority, category, notes, createdAt: new Date().toISOString().split('T')[0] }, ...prev]);
+    setTitle(''); setEstimatedPrice(''); setNotes('');
     showToast(`Added "${title}" to your Wishlist!`, 'success');
   };
 
@@ -1056,15 +999,7 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
   };
 
   const handleConvertToExpense = (wish) => {
-    onAddTransaction({
-      id: 'tx-' + Date.now(),
-      title: `Fulfilled Wish: ${wish.title}`,
-      amount: wish.estimatedPrice,
-      type: 'Expense',
-      category: 'Other',
-      merchant: 'Wishlist Goal',
-      date: new Date().toISOString().split('T')[0]
-    });
+    onAddTransaction({ id: 'tx-' + Date.now(), title: `Fulfilled Wish: ${wish.title}`, amount: wish.estimatedPrice, type: 'Expense', category: 'Other', merchant: 'Wishlist Goal', date: new Date().toISOString().split('T')[0] });
     handleDeleteWish(wish.id);
   };
 
@@ -1073,14 +1008,8 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
       <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
         <h3 className="text-sm font-bold flex items-center gap-2"><Heart className={`w-4 h-4 ${theme.textAccent}`} /> Add Future Wish Item</h3>
         <form onSubmit={handleAddWish} className="space-y-3">
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Wish Name</label>
-            <input type="text" placeholder="e.g. 34-inch Curved Monitor" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Estimated Price</label>
-            <input type="number" placeholder="45000" required value={estimatedPrice} onChange={(e) => setEstimatedPrice(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
-          </div>
+          <input type="text" placeholder="Wish Name (e.g. New Monitor)" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+          <input type="number" placeholder="Estimated Price" required value={estimatedPrice} onChange={(e) => setEstimatedPrice(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
           <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Add to Wish List</button>
         </form>
       </div>
@@ -1144,8 +1073,7 @@ function ShoppingListsView({ theme, geminiApiKey, shoppingLists, setShoppingList
       const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
 
       setShoppingLists(prev => [{ id: 'list-' + Date.now(), title: listTitle, category: selectedCategory, rawText, estimatedItems: parsed.estimatedItems || [], totalEstimated: parsed.totalEstimated || 0, summaryNote: parsed.summaryNote || '', date: new Date().toISOString().split('T')[0] }, ...prev]);
-      setListTitle('');
-      setRawText('');
+      setListTitle(''); setRawText('');
       showToast('AI Cost estimation calculated successfully!', 'success');
     } catch (err) { alert('Estimation error: ' + err.message); } finally { setIsEstimating(false); }
   };
@@ -1203,16 +1131,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
     e.preventDefault();
     if (!formData.title || !formData.amount) return;
 
-    onAddTransaction({
-      id: 'tx-' + Date.now(),
-      title: formData.title,
-      amount: Number(formData.amount),
-      type: formData.type,
-      category: formData.category,
-      merchant: formData.merchant || 'General',
-      date: formData.date
-    });
-
+    onAddTransaction({ id: 'tx-' + Date.now(), title: formData.title, amount: Number(formData.amount), type: formData.type, category: formData.category, merchant: formData.merchant || 'General', date: formData.date });
     setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
   };
 
@@ -1380,42 +1299,66 @@ function AnalyticsView({ theme, transactions, formatCurrency }) {
   );
 }
 
-function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, nickname, setNickname, userEmail, setUserEmail, showToast }) {
+function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, nickname, setNickname, userEmail, setUserEmail, householdCode, onOpenPartnerModal, showToast }) {
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold flex items-center gap-2"><User className={`w-5 h-5 ${theme.textAccent}`} /> Account & App Nickname</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Your Nickname</label>
-            <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left Column */}
+      <div className="space-y-6">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 className="text-base font-bold flex items-center gap-2"><User className={`w-5 h-5 ${theme.textAccent}`} /> Account Profile</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Your Nickname</label>
+              <input type="text" placeholder="e.g. Alex" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Email Address</label>
+              <input type="email" placeholder="Optional sync email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+            </div>
           </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Email Address</label>
-            <input type="email" placeholder="Optional sync email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+        </div>
+
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 className="text-base font-bold flex items-center gap-2"><Globe className={`w-5 h-5 ${theme.textAccent}`} /> Default Currency</h3>
+          <select value={selectedCurrency} onChange={(e) => setSelectedCurrency(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none">
+            {WORLD_CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.code} - {c.name} ({c.symbol})</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Right Column: QR Code & Connections */}
+      <div className="space-y-6">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 className="text-base font-bold flex items-center gap-2"><QrCode className={`w-5 h-5 ${theme.textAccent}`} /> Shared Household Vault & QR</h3>
+          <div className="flex flex-col sm:flex-row gap-6 items-center pt-2">
+            <div className="bg-white p-3 rounded-xl shadow-lg shrink-0">
+               {/* Live API QR Code Generation mapped to your specific vault ID */}
+               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${householdCode}`} alt="Vault QR" className="w-[130px] h-[130px]" />
+            </div>
+            <div className="space-y-3 w-full text-center sm:text-left">
+               <div>
+                  <p className="text-[11px] font-bold uppercase opacity-60">Your Vault Code</p>
+                  <p className="text-xl font-bold font-mono text-sky-400">{householdCode}</p>
+               </div>
+               <p className="text-[11px] opacity-70 leading-relaxed">Have your partner scan this QR code, or manually enter the code to merge your accounts live across devices.</p>
+               <button onClick={onOpenPartnerModal} className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold ${theme.btnPrimary}`}>Connect via Vault Code</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 className="text-base font-bold flex items-center gap-2"><Palette className={`w-5 h-5 ${theme.textAccent}`} /> Accent Color Theme</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.keys(THEMES).map(tKey => (
+              <button key={tKey} onClick={() => setCurrentTheme(tKey)} className={`p-2 rounded-xl border text-[11px] font-bold ${currentTheme === tKey ? `${THEMES[tKey].btnPrimary} border-white` : 'bg-slate-950 border-slate-800 opacity-70'}`}>{THEMES[tKey].name}</button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold flex items-center gap-2"><Globe className={`w-5 h-5 ${theme.textAccent}`} /> Default Currency</h3>
-        <select value={selectedCurrency} onChange={(e) => setSelectedCurrency(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none">
-          {WORLD_CURRENCIES.map(c => (
-            <option key={c.code} value={c.code}>{c.code} - {c.name} ({c.symbol})</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h3 className="text-base font-bold flex items-center gap-2"><Palette className={`w-5 h-5 ${theme.textAccent}`} /> Accent Color Theme</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {Object.keys(THEMES).map(tKey => (
-            <button key={tKey} onClick={() => setCurrentTheme(tKey)} className={`p-3 rounded-xl border text-xs font-bold ${currentTheme === tKey ? `${THEMES[tKey].btnPrimary} border-white` : 'bg-slate-950 border-slate-800 opacity-70'}`}>{THEMES[tKey].name}</button>
-          ))}
-        </div>
-      </div>
-
-      <div className="text-right pt-2">
+      <div className="col-span-full text-right pt-2">
         <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-500 hover:text-slate-300 font-mono flex items-center gap-1.5 ml-auto"><Lock className="w-3.5 h-3.5" /> 🔒 Master Gemini & Supabase Config</button>
       </div>
     </div>
@@ -1505,13 +1448,13 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
           },
           body: JSON.stringify({
             id: codeToUse,
-            name: `${nickname} & ${partnerName || 'Partner'}`
+            name: `${nickname || 'User 1'} & ${partnerName || 'Partner'}`
           })
         });
 
         if (userEmail || partnerEmail) {
           const emailSubject = encodeURIComponent(`STASHLY: Vault Merge Successful (${codeToUse})`);
-          const emailBody = encodeURIComponent(`Hello,\n\nYour STASHLY Household Vault has been successfully merged!\n\nVault Code: ${codeToUse}\nUsers: ${nickname} & ${partnerName || 'Partner'}\n\nAll cashflow projections and expenses are now synchronized live across both devices.`);
+          const emailBody = encodeURIComponent(`Hello,\n\nYour STASHLY Household Vault has been successfully merged!\n\nVault Code: ${codeToUse}\nUsers: ${nickname || 'User'} & ${partnerName || 'Partner'}\n\nAll cashflow projections and expenses are now synchronized live across both devices.`);
           window.open(`mailto:${userEmail},${partnerEmail}?subject=${emailSubject}&body=${emailBody}`, '_blank');
         }
       }
@@ -1530,23 +1473,10 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold flex items-center gap-2"><UserPlus className={`w-4 h-4 ${theme.textAccent}`} /> Shared Household Vault</h3>
+          <h3 className="text-sm font-bold flex items-center gap-2"><UserPlus className={`w-4 h-4 ${theme.textAccent}`} /> Connect Partner Vault</h3>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
         
-        <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-          <span className="text-[10px] font-semibold opacity-60 uppercase">Your Active Vault Code</span>
-          <p className="font-mono font-bold text-sm text-sky-400">{householdCode}</p>
-          
-          {/* QR Code Stub */}
-          <div className="pt-2 border-t border-slate-800 flex items-center gap-3">
-            <div className="bg-white p-2 rounded-lg flex items-center justify-center shadow-inner">
-               <QrCode className="w-12 h-12 text-slate-950" />
-            </div>
-            <p className="text-[10px] opacity-60 leading-tight">Ready for QR Scanning.<br/>Have your partner scan this to automatically merge vaults.</p>
-          </div>
-        </div>
-
         <div className="space-y-3">
           <div>
             <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
@@ -1565,7 +1495,7 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
         </div>
 
         <button onClick={handleApplyCustomCode} disabled={isMerging} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>
-          {isMerging ? 'Merging Vaults...' : 'Merge Vaults & Send Email'}
+          {isMerging ? 'Merging Vaults...' : 'Merge Vaults & Sync Device'}
         </button>
       </div>
     </div>
@@ -1583,7 +1513,7 @@ function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLo
     }
 
     setIsLoggedIn(true);
-    showToast(`You successfully logged in as ${nickname}!`, 'success');
+    showToast(`Logged in successfully!`, 'success');
     onClose();
   };
 
@@ -1607,7 +1537,7 @@ function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLo
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-bold text-sm">Logged in as {nickname}</p>
+              <p className="font-bold text-sm">Logged in as {nickname || 'User'}</p>
               <p className="text-xs opacity-60">{userEmail}</p>
             </div>
             <button onClick={handleLogout} className="w-full py-2.5 rounded-xl font-bold text-xs bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30">
