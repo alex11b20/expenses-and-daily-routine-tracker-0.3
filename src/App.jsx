@@ -41,8 +41,9 @@ import {
   CheckCircle2,
   XCircle,
   Eye,
-  Mail,
-  Shield
+  ChevronDown,
+  ChevronUp,
+  ListTree
 } from 'lucide-react';
 
 const WORLD_CURRENCIES = [
@@ -51,24 +52,25 @@ const WORLD_CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
   { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'BAM', name: 'Bosnia Convertible Mark', symbol: 'KM' }
+  { code: 'BAM', name: 'Bosnia Convertible Mark', symbol: 'KM' },
+  { code: 'MKD', name: 'Macedonian Denar', symbol: 'den' },
+  { code: 'HRK', name: 'Croatian Kuna', symbol: 'kn' },
+  { code: 'RUB', name: 'Russian Ruble', symbol: '₽' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'AED' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' }
 ];
 
-const PLAN_CATEGORIES = [
-  { id: 'General', label: 'General Expense / Income', icon: '📦' },
-  { id: 'Car', label: 'Car & Vehicle (Repair, Reg, Insurance)', icon: '🚗' },
-  { id: 'Utilities', label: 'Utilities & Household Bills', icon: '⚡' },
-  { id: 'Housing', label: 'Rent & Housing', icon: '🏠' },
-  { id: 'Salary', label: 'Salary & Income', icon: '💼' }
-];
-
-const CAR_SUB_CATEGORIES = [
-  'Vehicle Registration',
-  'Repairs & Mechanic',
-  'Regular Service & Parts',
-  'Car Insurance',
-  'Fuel & Tolls',
-  'Other Vehicle Costs'
+const CATEGORIES = [
+  { id: 'Food', label: 'Food & Groceries', icon: '🛒' },
+  { id: 'Utilities', label: 'Utilities & Bills', icon: '⚡' },
+  { id: 'Transport', label: 'Transportation & Fuel', icon: '🚗' },
+  { id: 'Housing', label: 'Housing & Rent', icon: '🏠' },
+  { id: 'Entertainment', label: 'Entertainment & Dining', icon: '☕' },
+  { id: 'Health', label: 'Health & Medical', icon: '💊' },
+  { id: 'Salary', label: 'Salary & Income', icon: '💼' },
+  { id: 'Other', label: 'Other Expenses', icon: '📦' }
 ];
 
 const THEMES = {
@@ -98,8 +100,24 @@ const THEMES = {
     bgAccent: 'bg-blue-500/10',
     chartColor: '#3b82f6',
     bgGlow: 'from-blue-950/40'
+  },
+  'yellow': {
+    name: 'Yellow Accent',
+    btnPrimary: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold',
+    textAccent: 'text-amber-400',
+    borderAccent: 'border-amber-400/40',
+    bgAccent: 'bg-amber-400/10',
+    chartColor: '#fbbf24',
+    bgGlow: 'from-amber-950/40'
   }
 };
+
+const FUN_FACTS = [
+  "Did you know? The first paper money was issued in China over 1,000 years ago during the Song Dynasty!",
+  "Pro tip: Waiting 24 hours before buying non-essential items reduces impulse buying by up to 70%.",
+  "Fun fact: The word 'bankruptcy' comes from Italian 'banca rotta', meaning 'broken bench'!",
+  "Financial tip: Building a 3-month emergency fund is like putting your budget in body armor."
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('cashflow');
@@ -115,13 +133,13 @@ export default function App() {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
   };
 
-  // Auth & Profile State
+  // Profile & Auth
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('sb_is_logged_in') === 'true');
   const [nickname, setNickname] = useState(() => localStorage.getItem('sb_user_nickname') || 'Aleksandar');
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem('sb_user_email') || 'alex@stashly.com');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Financial Data
+  // Financial States
   const [startingBalance, setStartingBalance] = useState(() => {
     const saved = localStorage.getItem('sb_starting_balance');
     return saved !== null ? Number(saved) : 100000;
@@ -134,6 +152,26 @@ export default function App() {
 
   const [cashflowPlans, setCashflowPlans] = useState(() => {
     const saved = localStorage.getItem('sb_cashflow_plans');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'plan-car-demo',
+        title: 'CAR',
+        amount: 300000,
+        type: 'Expense',
+        frequency: 'Monthly',
+        dayOfMonth: 15,
+        isActive: true,
+        subExpenses: [
+          { id: 'sub-1', description: 'Vehicle Registration & Inspection', amount: 45000 },
+          { id: 'sub-2', description: 'Mechanic Repairs & Servicing', amount: 180000 },
+          { id: 'sub-3', description: 'New Tires & Alignment', amount: 75000 }
+        ]
+      }
+    ];
+  });
+
+  const [shoppingLists, setShoppingLists] = useState(() => {
+    const saved = localStorage.getItem('sb_shopping_lists');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -144,7 +182,7 @@ export default function App() {
 
   const [projectionDays, setProjectionDays] = useState(45);
   
-  // API Keys
+  // Config Keys
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('sb_gemini_key') || '');
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('sb_supabase_url') || 'https://yrendrnoivykevbyjmo.supabase.co');
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => localStorage.getItem('sb_supabase_anon_key') || '');
@@ -152,21 +190,21 @@ export default function App() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
+  const [subExpensesPlan, setSubExpensesPlan] = useState(null); // Active plan for Sub-Expense breakdown modal
 
   const [householdCode, setHouseholdCode] = useState(() => localStorage.getItem('sb_household_code') || 'STASH-VAULT-88X');
   const [partnerName, setPartnerName] = useState(() => localStorage.getItem('sb_partner_name') || 'Anja');
-  const [partnerEmail, setPartnerEmail] = useState(() => localStorage.getItem('sb_partner_email') || '');
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
-  // Live Online Users Tracker
+  // Live Users Online Eye Counter
   const [liveUsersCount, setLiveUsersCount] = useState(1);
 
-  // Toast Banner System
+  // Toast Feedback System
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4500);
+    setTimeout(() => setToast(null), 4000);
   };
 
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
@@ -174,23 +212,23 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
   useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
+  useEffect(() => { localStorage.setItem('sb_shopping_lists', JSON.stringify(shoppingLists)); }, [shoppingLists]);
   useEffect(() => { localStorage.setItem('sb_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
   useEffect(() => { localStorage.setItem('sb_supabase_url', supabaseUrl); }, [supabaseUrl]);
   useEffect(() => { localStorage.setItem('sb_supabase_anon_key', supabaseAnonKey); }, [supabaseAnonKey]);
   useEffect(() => { localStorage.setItem('sb_household_code', householdCode); }, [householdCode]);
   useEffect(() => { localStorage.setItem('sb_partner_name', partnerName); }, [partnerName]);
-  useEffect(() => { localStorage.setItem('sb_partner_email', partnerEmail); }, [partnerEmail]);
   useEffect(() => { localStorage.setItem('sb_user_nickname', nickname); }, [nickname]);
   useEffect(() => { localStorage.setItem('sb_user_email', userEmail); }, [userEmail]);
   useEffect(() => { localStorage.setItem('sb_is_logged_in', isLoggedIn.toString()); }, [isLoggedIn]);
 
   // Supabase REST Helper
-  const sendToSupabase = async (endpoint, data, method = 'POST') => {
+  const sendToSupabase = async (endpoint, data) => {
     if (!supabaseUrl || !supabaseAnonKey) return null;
     try {
       const res = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
-        method,
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': supabaseAnonKey,
@@ -206,55 +244,7 @@ export default function App() {
     }
   };
 
-  // Heartbeat Polling for Live Online Eye Counter
-  useEffect(() => {
-    if (!supabaseUrl || !supabaseAnonKey) return;
-
-    const mySessionId = useRef('user-' + Math.random().toString(36).substring(2, 9)).current;
-
-    const sendHeartbeat = async () => {
-      try {
-        await fetch(`${supabaseUrl}/rest/v1/active_sessions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseAnonKey,
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
-            id: mySessionId,
-            household_id: householdCode,
-            nickname: nickname,
-            last_seen: new Date().toISOString()
-          })
-        });
-
-        // Fetch active sessions within last 15 seconds
-        const filterTime = new Date(Date.now() - 15000).toISOString();
-        const res = await fetch(`${supabaseUrl}/rest/v1/active_sessions?household_id=eq.${householdCode}&last_seen=gt.${filterTime}`, {
-          headers: {
-            'apikey': supabaseAnonKey,
-            'Authorization': `Bearer ${supabaseAnonKey}`
-          }
-        });
-
-        if (res.ok) {
-          const activeSessions = await res.json();
-          setLiveUsersCount(Math.max(1, activeSessions.length));
-        }
-      } catch (err) {
-        // Fallback default
-        setLiveUsersCount(1);
-      }
-    };
-
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 5000);
-    return () => clearInterval(interval);
-  }, [supabaseUrl, supabaseAnonKey, householdCode, nickname]);
-
-  // Real-time Cloud Polling for Transactions & Vault Merging
+  // Real-time Cloud Polling for Transactions & Vault Synchronization
   const knownTxIdsRef = useRef(new Set(transactions.map(t => t.id)));
 
   useEffect(() => {
@@ -417,7 +407,7 @@ export default function App() {
       setCashflowPlans(prev => prev.map(p => p.id === editingPlan.id ? { ...planData, id: editingPlan.id } : p));
       showToast('Cashflow rule updated successfully!', 'success');
     } else {
-      setCashflowPlans(prev => [...prev, { ...planData, id: 'plan-' + Date.now() }]);
+      setCashflowPlans(prev => [...prev, { ...planData, id: 'plan-' + Date.now(), subExpenses: [] }]);
       showToast('New Cashflow rule added!', 'success');
     }
     setIsPlanModalOpen(false);
@@ -429,10 +419,30 @@ export default function App() {
     showToast('Cashflow rule deleted.', 'info');
   };
 
+  // Update Sub-Expenses of a specific Plan
+  const handleUpdateSubExpenses = (planId, newSubExpenses) => {
+    const totalSubSum = newSubExpenses.reduce((acc, item) => acc + Number(item.amount || 0), 0);
+
+    setCashflowPlans(prev => prev.map(p => {
+      if (p.id === planId) {
+        return {
+          ...p,
+          subExpenses: newSubExpenses,
+          amount: newSubExpenses.length > 0 ? totalSubSum : p.amount
+        };
+      }
+      return p;
+    }));
+
+    showToast(`Sub-expenses updated! Main plan total synced to ${formatCurrency(totalSubSum)}`, 'success');
+  };
+
   const tabs = [
     { id: 'cashflow', label: 'Cashflow Projection', icon: Calendar },
     { id: 'wishlist', label: 'Wish List & Goals', icon: Heart },
+    { id: 'lists', label: 'Grocery List', icon: ListPlus },
     { id: 'entry', label: 'Expenses & OCR Scan', icon: Camera },
+    { id: 'groceries', label: 'Item Tracker & Usage', icon: Activity },
     { id: 'analytics', label: 'Reports', icon: PieChart },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
@@ -465,10 +475,10 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Live Online Eye Counter Icon */}
+            {/* Live Online Users Counter (Eye Icon) */}
             <div
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-bold bg-slate-950/80 border-slate-800 ${liveUsersCount > 1 ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-400'}`}
-              title={`${liveUsersCount} user(s) online in your vault`}
+              title={`${liveUsersCount} user(s) live in your vault`}
             >
               <Eye className={`w-4 h-4 ${liveUsersCount > 1 ? 'animate-pulse text-emerald-400' : 'text-slate-400'}`} />
               <span>{liveUsersCount}</span>
@@ -501,7 +511,7 @@ export default function App() {
         </div>
 
         {isMenuOpen && (
-          <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-5 gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
             {tabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -536,6 +546,7 @@ export default function App() {
             onOpenAddPlan={() => { setEditingPlan(null); setIsPlanModalOpen(true); }}
             onEditPlan={(plan) => { setEditingPlan(plan); setIsPlanModalOpen(true); }}
             onDeletePlan={handleDeletePlan}
+            onOpenSubExpenses={(plan) => setSubExpensesPlan(plan)}
           />
         )}
 
@@ -551,6 +562,18 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'lists' && (
+          <ShoppingListsView
+            theme={theme}
+            geminiApiKey={geminiApiKey}
+            shoppingLists={shoppingLists}
+            setShoppingLists={setShoppingLists}
+            formatCurrency={formatCurrency}
+            selectedCurrency={selectedCurrency}
+            showToast={showToast}
+          />
+        )}
+
         {activeTab === 'entry' && (
           <DailyEntryView
             theme={theme}
@@ -561,6 +584,10 @@ export default function App() {
             onDeleteTransaction={handleDeleteTransaction}
             showToast={showToast}
           />
+        )}
+
+        {activeTab === 'groceries' && (
+          <GroceryTrackerView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />
         )}
 
         {activeTab === 'analytics' && (
@@ -585,6 +612,17 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Sub-Expense Breakdown Modal */}
+      {subExpensesPlan && (
+        <SubExpensesModal
+          theme={theme}
+          plan={subExpensesPlan}
+          formatCurrency={formatCurrency}
+          onUpdate={(newSubList) => handleUpdateSubExpenses(subExpensesPlan.id, newSubList)}
+          onClose={() => setSubExpensesPlan(null)}
+        />
+      )}
 
       {showAdminModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -645,12 +683,6 @@ export default function App() {
           setHouseholdCode={setHouseholdCode}
           partnerName={partnerName}
           setPartnerName={setPartnerName}
-          partnerEmail={partnerEmail}
-          setPartnerEmail={setPartnerEmail}
-          userEmail={userEmail}
-          nickname={nickname}
-          supabaseUrl={supabaseUrl}
-          supabaseAnonKey={supabaseAnonKey}
           showToast={showToast}
           onClose={() => setIsPartnerModalOpen(false)}
         />
@@ -677,8 +709,7 @@ export default function App() {
   );
 }
 
-function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
-  const [selectedPlanTab, setSelectedPlanTab] = useState('All');
+function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan, onOpenSubExpenses }) {
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
 
@@ -691,17 +722,6 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
     const y = 100 - (((d.endingBalance - minBal) / range) * 80 + 10);
     return `${x},${y}`;
   }).join(' ');
-
-  const filteredPlans = useMemo(() => {
-    if (selectedPlanTab === 'Car') return cashflowPlans.filter(p => p.category === 'Car');
-    if (selectedPlanTab === 'Utilities') return cashflowPlans.filter(p => p.category === 'Utilities');
-    if (selectedPlanTab === 'General') return cashflowPlans.filter(p => p.category === 'General' || !p.category);
-    return cashflowPlans;
-  }, [cashflowPlans, selectedPlanTab]);
-
-  const totalCarUpcomingCost = useMemo(() => {
-    return cashflowPlans.filter(p => p.category === 'Car' && p.type === 'Expense').reduce((acc, p) => acc + Number(p.amount), 0);
-  }, [cashflowPlans]);
 
   return (
     <div className="space-y-6">
@@ -731,10 +751,10 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
 
         <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
           <div className="flex items-center justify-between opacity-60 mb-2">
-            <span className="text-xs font-semibold uppercase">Car & Vehicle Planned</span>
-            <Car className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-semibold uppercase">Lowest Point</span>
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-black">{formatCurrency(totalCarUpcomingCost)}</p>
+          <p className="text-2xl font-black">{formatCurrency(lowestProjectedBalance)}</p>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
@@ -765,39 +785,45 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
             <h4 className="text-sm font-bold">Planned Income & Expenses</h4>
             <button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Plus className="w-4 h-4" /> Add Plan</button>
           </div>
-
-          {/* Sub-tabs for Plan Categories */}
-          <div className="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
-            {['All', 'Car', 'Utilities', 'General'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setSelectedPlanTab(tab)}
-                className={`py-1.5 rounded-lg transition-all ${selectedPlanTab === tab ? `${theme.btnPrimary}` : 'opacity-60 hover:opacity-100'}`}
-              >
-                {tab === 'Car' ? '🚗 Car' : tab}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-2.5 overflow-y-auto max-h-[380px]">
-            {filteredPlans.length === 0 ? (
-              <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans in this sub-tab yet.</p>
+          <div className="space-y-3 overflow-y-auto max-h-[420px]">
+            {cashflowPlans.length === 0 ? (
+              <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans added yet.</p>
             ) : (
-              filteredPlans.map(plan => (
-                <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      {plan.category === 'Car' && <Car className="w-3.5 h-3.5 text-sky-400 shrink-0" />}
-                      <h5 className="text-xs font-bold">{plan.title}</h5>
+              cashflowPlans.map(plan => {
+                const subCount = plan.subExpenses ? plan.subExpenses.length : 0;
+                return (
+                  <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="cursor-pointer" onClick={() => onOpenSubExpenses(plan)}>
+                        <h5 className="text-xs font-bold flex items-center gap-1.5 hover:underline">
+                          {plan.title.toUpperCase() === 'CAR' && <Car className="w-3.5 h-3.5 text-sky-400" />}
+                          {plan.title}
+                        </h5>
+                        <span className="text-[10px] opacity-60">{plan.frequency} • {subCount > 0 ? `${subCount} sub-item(s)` : 'Click to add sub-expenses'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-bold ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {plan.type === 'Income' ? '+' : '-'}{formatCurrency(plan.amount)}
+                        </span>
+                        <button onClick={() => onOpenSubExpenses(plan)} title="Sub-Expenses Breakdown" className="text-sky-400 hover:text-sky-300 p-1"><ListTree className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => onDeletePlan(plan.id)} title="Delete Plan" className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
                     </div>
-                    <span className="text-[10px] opacity-60">{plan.subCategory || plan.frequency}</span>
+
+                    {/* Quick Inline List of Sub-Expenses */}
+                    {subCount > 0 && (
+                      <div className="pt-2 border-t border-slate-900 space-y-1">
+                        {plan.subExpenses.map(sub => (
+                          <div key={sub.id} className="flex justify-between text-[11px] opacity-80">
+                            <span>• {sub.description}</span>
+                            <span className="font-mono">{formatCurrency(sub.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>{plan.type === 'Income' ? '+' : '-'}{formatCurrency(plan.amount)}</span>
-                    <button onClick={() => onDeletePlan(plan.id)} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -828,6 +854,98 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Sub-Expense Breakdown Manager Modal
+function SubExpensesModal({ theme, plan, formatCurrency, onUpdate, onClose }) {
+  const [subList, setSubList] = useState(plan.subExpenses || []);
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+
+  const handleAddSubItem = (e) => {
+    e.preventDefault();
+    if (!description || !amount) return;
+
+    const newItem = {
+      id: 'sub-' + Date.now(),
+      description,
+      amount: Number(amount)
+    };
+
+    const updated = [...subList, newItem];
+    setSubList(updated);
+    onUpdate(updated);
+
+    setDescription('');
+    setAmount('');
+  };
+
+  const handleDeleteSubItem = (id) => {
+    const updated = subList.filter(s => s.id !== id);
+    setSubList(updated);
+    onUpdate(updated);
+  };
+
+  const calculatedTotal = useMemo(() => subList.reduce((acc, s) => acc + Number(s.amount), 0), [subList]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-sm font-bold flex items-center gap-2"><ListTree className={`w-4 h-4 ${theme.textAccent}`} /> Sub-Expenses Breakdown: {plan.title}</h3>
+            <p className="text-[11px] opacity-60">Add itemized parts & costs for this main expense</p>
+          </div>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+
+        <form onSubmit={handleAddSubItem} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input
+            type="text"
+            placeholder="Sub-expense Description (e.g. Registration)"
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="sm:col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none"
+          />
+          <input
+            type="number"
+            placeholder="Amount"
+            required
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none"
+          />
+          <button type="submit" className={`sm:col-span-3 py-2 rounded-xl text-xs font-bold uppercase ${theme.btnPrimary}`}>
+            Add Sub-Expense Item
+          </button>
+        </form>
+
+        <div className="space-y-2 max-h-[250px] overflow-y-auto pt-2">
+          {subList.length === 0 ? (
+            <p className="text-xs opacity-50 text-center py-6 border border-dashed border-slate-800 rounded-xl">No sub-expenses added yet.</p>
+          ) : (
+            subList.map(item => (
+              <div key={item.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <p className="font-bold">{item.description}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono font-bold text-rose-400">-{formatCurrency(item.amount)}</span>
+                  <button onClick={() => handleDeleteSubItem(item.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs font-bold">
+          <span>Calculated Main Expense Total:</span>
+          <span className="font-mono text-sm text-sky-400">{formatCurrency(calculatedTotal)}</span>
         </div>
       </div>
     </div>
@@ -918,8 +1036,97 @@ function WishlistView({ theme, wishlist, setWishlist, formatCurrency, safeToSpen
   );
 }
 
+function ShoppingListsView({ theme, geminiApiKey, shoppingLists, setShoppingLists, formatCurrency, selectedCurrency, showToast }) {
+  const [selectedCategory, setSelectedCategory] = useState('Foods');
+  const [listTitle, setListTitle] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  const categories = [
+    { id: 'Foods', label: 'Foods & Groceries', icon: ShoppingBag },
+    { id: 'Tools', label: 'Tools & Hardware', icon: Wrench },
+    { id: 'Car', label: 'Car Parts & Repair', icon: Car },
+    { id: 'Project', label: 'Projects & Building', icon: Hammer },
+    { id: 'Other', label: 'Other & Various', icon: Package }
+  ];
+
+  const handleEstimateCost = async (e) => {
+    e.preventDefault();
+    if (!rawText.trim() || !listTitle.trim()) return;
+
+    if (!geminiApiKey) {
+      alert('Gemini API key is required for AI estimations. Please configure it in Settings -> Master Config.');
+      return;
+    }
+
+    setIsEstimating(true);
+    try {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+      const systemPrompt = `Analyze shopping list for category '${selectedCategory}'. Estimate average retail price in currency ${selectedCurrency}. Respond strictly with JSON: { "estimatedItems": [{ "item": "string", "qty": "string", "estimatedPrice": number }], "totalEstimated": number, "summaryNote": "string" }\nList:\n${rawText}`;
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }], generationConfig: { responseMimeType: "application/json" } })
+      });
+      const data = await res.json();
+      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+
+      setShoppingLists(prev => [{ id: 'list-' + Date.now(), title: listTitle, category: selectedCategory, rawText, estimatedItems: parsed.estimatedItems || [], totalEstimated: parsed.totalEstimated || 0, summaryNote: parsed.summaryNote || '', date: new Date().toISOString().split('T')[0] }, ...prev]);
+      setListTitle('');
+      setRawText('');
+      showToast('AI Cost estimation calculated successfully!', 'success');
+    } catch (err) { alert('Estimation error: ' + err.message); } finally { setIsEstimating(false); }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+        <h3 className="text-base font-bold flex items-center gap-2"><Calculator className={`w-5 h-5 ${theme.textAccent}`} /> Grocery List & AI Market Cost Estimation</h3>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+          <form onSubmit={handleEstimateCost} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {categories.map(cat => (
+                  <button key={cat.id} type="button" onClick={() => setSelectedCategory(cat.id)} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-2 border ${selectedCategory === cat.id ? theme.btnPrimary : 'bg-slate-950 border-slate-800 opacity-60'}`}>{cat.id}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">List Title</label>
+              <input type="text" placeholder="e.g. Weekly Groceries" required value={listTitle} onChange={(e) => setListTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Items List</label>
+              <textarea rows={5} placeholder="Write items here (e.g. 2x Milk 1L, Bread)..." required value={rawText} onChange={(e) => setRawText(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none font-mono" />
+            </div>
+            <button type="submit" disabled={isEstimating} className={`w-full font-bold py-3 rounded-xl text-xs uppercase ${theme.btnPrimary}`}>{isEstimating ? 'Estimating...' : 'Estimate Cost with AI'}</button>
+          </form>
+        </div>
+        <div className="lg:col-span-2 space-y-4">
+          {shoppingLists.length === 0 ? (
+            <div className="bg-slate-900/80 p-8 rounded-2xl border border-dashed border-slate-800 text-center opacity-50 text-xs">No saved shopping lists yet.</div>
+          ) : (
+            shoppingLists.map(list => (
+              <div key={list.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div className="flex justify-between items-center"><h5 className="font-bold text-sm">{list.title}</h5><span className={`font-mono font-bold ${theme.textAccent}`}>~{formatCurrency(list.totalEstimated)}</span></div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, formatCurrency, onDeleteTransaction, showToast }) {
   const [formData, setFormData] = useState({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleManualAdd = (e) => {
     e.preventDefault();
@@ -938,41 +1145,166 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
     setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
   };
 
+  const handleReceiptScan = async () => {
+    if (!selectedFiles.length || !geminiApiKey) {
+      alert('Please select receipt image(s) and make sure Gemini API key is configured in Settings -> Master Config.');
+      return;
+    }
+    setIsScanning(true);
+    try {
+      const imageParts = await Promise.all(selectedFiles.map(file => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve({ inlineData: { data: reader.result.split(',')[1], mimeType: file.type || 'image/jpeg' } });
+        reader.readAsDataURL(file);
+      })));
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: "Extract receipt details JSON: amount, merchant, date, category, title, items: [{ name: string, quantity: number, price: number }]" }, ...imageParts] }], generationConfig: { responseMimeType: "application/json" } })
+      });
+      const data = await res.json();
+      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+
+      onAddTransaction({ id: 'tx-' + Date.now(), title: parsed.title || 'Scanned Receipt', amount: Number(parsed.amount) || 0, type: 'Expense', category: parsed.category || 'Food', merchant: parsed.merchant || 'Store', date: parsed.date || new Date().toISOString().split('T')[0], items: parsed.items || [] });
+      setSelectedFiles([]);
+      showToast('Receipt scanned & logged with AI!', 'success');
+    } catch (err) { alert('OCR Error: ' + err.message); } finally { setIsScanning(false); }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-        <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Log Transaction</h3>
-        <form onSubmit={handleManualAdd} className="space-y-3">
-          <input type="text" placeholder="Title (e.g. Groceries)" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
-          <input type="number" placeholder="Amount" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
-          <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
-            <option value="Expense">Expense</option>
-            <option value="Income">Income</option>
-          </select>
-          <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Submit Entry</button>
-        </form>
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Manual Transaction Entry</h3>
+          <form onSubmit={handleManualAdd} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Title</label>
+              <input type="text" placeholder="e.g. Coffee, Groceries" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">Amount</label>
+                <input type="number" placeholder="0" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">Type</label>
+                <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                  <option value="Expense">Expense</option>
+                  <option value="Income">Income</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
+              <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+            <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Log Entry</button>
+          </form>
+        </div>
+
+        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+          <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className={`w-4 h-4 ${theme.textAccent}`} /> Receipt OCR Scanner</h3>
+          <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={(e) => setSelectedFiles(Array.from(e.target.files))} className="hidden" />
+          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 p-6 rounded-xl text-center cursor-pointer hover:border-slate-700">
+            <Camera className={`w-8 h-8 mx-auto mb-2 ${theme.textAccent}`} />
+            <p className="text-xs font-semibold">{selectedFiles.length > 0 ? `${selectedFiles.length} photos selected` : 'Take or Upload Receipt Photos'}</p>
+          </div>
+          {selectedFiles.length > 0 && <button onClick={handleReceiptScan} disabled={isScanning} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>{isScanning ? 'Scanning...' : 'Process Photos'}</button>}
+        </div>
       </div>
 
       <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-        <h3 className="text-sm font-bold">Transaction History</h3>
+        <h3 className="text-sm font-bold">Transaction History Log</h3>
         <div className="divide-y divide-slate-800 max-h-[500px] overflow-y-auto">
-          {transactions.map(t => (
-            <div key={t.id} className="py-3 flex justify-between items-center text-xs">
-              <div><p className="font-bold">{t.title}</p><p className="opacity-50">{t.merchant || 'General'} • {t.date}</p></div>
-              <div className="flex items-center gap-3"><span className="font-mono font-bold">{formatCurrency(t.amount)}</span><button onClick={() => onDeleteTransaction(t.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
-            </div>
-          ))}
+          {transactions.length === 0 ? (
+            <p className="text-xs opacity-50 py-8 text-center">No logged transactions yet.</p>
+          ) : (
+            transactions.map(t => (
+              <div key={t.id} className="py-3 flex justify-between items-center text-xs">
+                <div><p className="font-bold">{t.title}</p><p className="opacity-50">{t.merchant || t.category} • {t.date}</p></div>
+                <div className="flex items-center gap-3"><span className={`font-mono font-bold ${t.type === 'Income' ? 'text-emerald-400' : 'text-slate-200'}`}>{t.type === 'Income' ? '+' : '-'}{formatCurrency(t.amount)}</span><button onClick={() => onDeleteTransaction(t.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+function GroceryTrackerView({ theme, transactions, formatCurrency }) {
+  const [search, setSearch] = useState('');
+  const items = useMemo(() => {
+    const itemMap = {};
+    transactions.forEach(t => {
+      if (t.items) t.items.forEach(i => {
+        const itemName = i.name || i.item || 'Item';
+        const k = itemName.toLowerCase().trim();
+        if (!itemMap[k]) itemMap[k] = { name: itemName, qty: 0, spent: 0 };
+        itemMap[k].qty += Number(i.quantity || 1);
+        itemMap[k].spent += Number(i.price || 0) * Number(i.quantity || 1);
+      });
+    });
+    return Object.values(itemMap).filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  }, [transactions, search]);
+
+  return (
+    <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-bold flex items-center gap-2"><Activity className={`w-4 h-4 ${theme.textAccent}`} /> Item Tracker & Usage</h3>
+        <input type="text" placeholder="Search item..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {items.length === 0 ? (
+          <div className="col-span-full py-8 text-center opacity-50 text-xs">No scanned receipt items recorded yet.</div>
+        ) : (
+          items.map((i, idx) => (
+            <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center">
+              <div><p className="font-bold text-xs">{i.name}</p></div>
+              <div className="text-right"><p className={`font-mono font-bold text-xs ${theme.textAccent}`}>{i.qty} pcs</p><p className="text-[10px] opacity-50">{formatCurrency(i.spent)}</p></div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsView({ theme, transactions, formatCurrency }) {
+  const categoryTotals = useMemo(() => {
+    const totals = {};
+    transactions.filter(t => t.type === 'Expense').forEach(t => {
+      totals[t.category] = (totals[t.category] || 0) + Number(t.amount);
+    });
+    return totals;
+  }, [transactions]);
+
+  const grandTotal = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+
   return (
     <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-6">
       <h3 className="text-sm font-bold flex items-center gap-2"><PieChart className={`w-4 h-4 ${theme.textAccent}`} /> Reports & Category Expenses</h3>
-      <p className="text-xs opacity-60">Visual reports are automatically synchronized with logged transactions.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {CATEGORIES.map(cat => {
+          const spent = categoryTotals[cat.id] || 0;
+          const pct = grandTotal > 0 ? Math.round((spent / grandTotal) * 100) : 0;
+          return (
+            <div key={cat.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold flex items-center gap-2"><span>{cat.icon}</span> {cat.label}</span>
+                <span className="font-mono font-bold">{formatCurrency(spent)}</span>
+              </div>
+              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                <div className={`h-full ${theme.btnPrimary}`} style={{ width: `${pct}%` }}></div>
+              </div>
+              <span className="text-[10px] opacity-50">{pct}% of total spent</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1003,6 +1335,20 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
         </select>
       </div>
 
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h3 className="text-base font-bold flex items-center gap-2"><Palette className={`w-5 h-5 ${theme.textAccent}`} /> Accent Color Theme</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Object.keys(THEMES).map(tKey => (
+            <button key={tKey} onClick={() => setCurrentTheme(tKey)} className={`p-3 rounded-xl border text-xs font-bold ${currentTheme === tKey ? `${THEMES[tKey].btnPrimary} border-white` : 'bg-slate-950 border-slate-800 opacity-70'}`}>{THEMES[tKey].name}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h3 className="text-base font-bold flex items-center gap-2"><DollarSign className={`w-5 h-5 ${theme.textAccent}`} /> Starting Balance</h3>
+        <input type="number" value={startingBalance} onChange={(e) => setStartingBalance(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none" />
+      </div>
+
       <div className="text-right pt-2">
         <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-500 hover:text-slate-300 font-mono flex items-center gap-1.5 ml-auto"><Lock className="w-3.5 h-3.5" /> 🔒 Master Gemini & Supabase Config</button>
       </div>
@@ -1011,41 +1357,13 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, selectedCurrency, 
 }
 
 function PlanModal({ theme, plan, onSave, onClose }) {
-  const [formData, setFormData] = useState(plan || {
-    title: '',
-    amount: '',
-    type: 'Expense',
-    category: 'Car',
-    subCategory: 'Vehicle Registration',
-    frequency: 'Monthly',
-    dayOfMonth: 15,
-    isActive: true
-  });
-
+  const [formData, setFormData] = useState(plan || { title: '', amount: '', type: 'Expense', frequency: 'Monthly', dayOfMonth: 15, isActive: true });
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4">
         <div className="flex justify-between items-center"><h3 className="text-sm font-bold">Planned Cashflow Rule</h3><button onClick={onClose}><X className="w-4 h-4" /></button></div>
-        
-        <div>
-          <label className="text-[10px] font-bold uppercase opacity-60">Category</label>
-          <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
-            {PLAN_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-        </div>
-
-        {formData.category === 'Car' && (
-          <div>
-            <label className="text-[10px] font-bold uppercase opacity-60 text-sky-400">Car Expense Sub-Type</label>
-            <select value={formData.subCategory} onChange={e => setFormData({ ...formData, subCategory: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
-              {CAR_SUB_CATEGORIES.map(sc => <option key={sc} value={sc}>{sc}</option>)}
-            </select>
-          </div>
-        )}
-
-        <input type="text" placeholder="Title (e.g. Opel Registration)" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-        <input type="number" placeholder="Amount (RSD)" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-        
+        <input type="text" placeholder="Title (e.g. CAR, Electricity)" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+        <input type="number" placeholder="Amount" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
         <div className="grid grid-cols-2 gap-2">
           <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
             <option value="Expense">Expense</option>
@@ -1053,58 +1371,26 @@ function PlanModal({ theme, plan, onSave, onClose }) {
           </select>
           <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
             <option value="Monthly">Monthly</option>
+            <option value="Weekly">Weekly</option>
             <option value="Once">Once</option>
           </select>
         </div>
-
-        <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Cashflow Rule</button>
+        <button onClick={() => { onSave(formData); onClose(); }} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Rule</button>
       </div>
     </div>
   );
 }
 
-function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, partnerEmail, setPartnerEmail, userEmail, nickname, supabaseUrl, supabaseAnonKey, showToast, onClose }) {
+function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, setPartnerName, showToast, onClose }) {
   const [inputCode, setInputCode] = useState('');
-  const [isMerging, setIsMerging] = useState(false);
 
-  const handleApplyCustomCode = async () => {
-    const codeToUse = inputCode.trim() || householdCode;
-    setIsMerging(true);
-
-    try {
-      // Send Merge Event to Supabase
-      if (supabaseUrl && supabaseAnonKey) {
-        await fetch(`${supabaseUrl}/rest/v1/households`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseAnonKey,
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
-            id: codeToUse,
-            name: `${nickname} & ${partnerName}`
-          })
-        });
-
-        // Send Email Confirmation to both partners
-        if (userEmail || partnerEmail) {
-          const emailSubject = encodeURIComponent(`STASHLY: Successful Household Vault Merge (${codeToUse})`);
-          const emailBody = encodeURIComponent(`Hello,\n\nYour STASHLY Household Vault has been successfully merged!\n\nVault Code: ${codeToUse}\nUsers: ${nickname} & ${partnerName}\n\nAll cashflow projections and expenses are now synchronized live across both devices.`);
-          
-          // Trigger mailto client fallback & notification
-          window.open(`mailto:${userEmail},${partnerEmail}?subject=${emailSubject}&body=${emailBody}`, '_blank');
-        }
-      }
-
-      setHouseholdCode(codeToUse);
-      showToast(`SUCCESS: Vault merged with ${partnerName}! Email confirmation sent to both addresses.`, 'success');
+  const handleApplyCustomCode = () => {
+    if (inputCode.trim()) {
+      setHouseholdCode(inputCode.trim());
+      showToast(`SUCCESS: Merged with vault code "${inputCode.trim()}"!`, 'success');
       onClose();
-    } catch (err) {
-      showToast(`FAILED: Could not merge vaults. Please check network connection.`, 'error');
-    } finally {
-      setIsMerging(false);
+    } else {
+      showToast('Please enter a valid vault code.', 'error');
     }
   };
 
@@ -1115,32 +1401,19 @@ function PartnerModal({ theme, householdCode, setHouseholdCode, partnerName, set
           <h3 className="text-sm font-bold flex items-center gap-2"><UserPlus className={`w-4 h-4 ${theme.textAccent}`} /> Shared Household Vault</h3>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
-        
         <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
           <span className="text-[10px] font-semibold opacity-60 uppercase">Your Active Vault Code</span>
           <p className="font-mono font-bold text-sm text-sky-400">{householdCode}</p>
         </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
-            <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Email (For Merge Confirmations)</label>
-            <input type="email" placeholder="partner@example.com" value={partnerEmail} onChange={(e) => setPartnerEmail(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Vault Code</label>
-            <input type="text" placeholder="Paste partner's code here..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
-          </div>
+        <div>
+          <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
+          <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
         </div>
-
-        <button onClick={handleApplyCustomCode} disabled={isMerging} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>
-          {isMerging ? 'Merging Vaults...' : 'Merge Vaults & Send Email Confirmation'}
-        </button>
+        <div>
+          <label className="text-[11px] font-semibold opacity-60 uppercase">Join Existing Code</label>
+          <input type="text" placeholder="Paste code..." value={inputCode} onChange={(e) => setInputCode(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono focus:outline-none" />
+        </div>
+        <button onClick={handleApplyCustomCode} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Sync Household Vault</button>
       </div>
     </div>
   );
@@ -1152,7 +1425,7 @@ function AuthModal({ theme, nickname, setNickname, userEmail, setUserEmail, isLo
   const handleLogin = (e) => {
     e.preventDefault();
     if (!userEmail || !password) {
-      showToast('Login Failed: Email and Password are required!', 'error');
+      showToast('Login Failed: Email and Password required!', 'error');
       return;
     }
 
