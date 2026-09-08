@@ -19,7 +19,12 @@ import {
   X,
   ShoppingBag,
   Search,
-  Upload
+  ListPlus,
+  Wrench,
+  Car,
+  Hammer,
+  Package,
+  Calculator
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -37,7 +42,7 @@ const INITIAL_TRANSACTIONS = [];
 const INITIAL_CASHFLOW_PLANS = [];
 
 const formatCurrency = (val) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val || 0);
+  return new Intl.NumberFormat('sr-RS', { maximumFractionDigits: 0 }).format(val || 0) + ' RSD';
 };
 
 const formatDate = (dateStr) => {
@@ -64,6 +69,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_CASHFLOW_PLANS;
   });
 
+  const [shoppingLists, setShoppingLists] = useState(() => {
+    const saved = localStorage.getItem('sb_shopping_lists');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [projectionDays, setProjectionDays] = useState(45);
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('sb_gemini_key') || '');
   const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('sb_supabase_url') || '');
@@ -72,22 +82,11 @@ export default function App() {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
 
-  useEffect(() => {
-    localStorage.setItem('sb_starting_balance', startingBalance.toString());
-  }, [startingBalance]);
-
-  useEffect(() => {
-    localStorage.setItem('sb_transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans));
-  }, [cashflowPlans]);
-
-  useEffect(() => {
-    localStorage.setItem('sb_gemini_key', geminiApiKey);
-  }, [geminiApiKey]);
-
+  useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
+  useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
+  useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
+  useEffect(() => { localStorage.setItem('sb_shopping_lists', JSON.stringify(shoppingLists)); }, [shoppingLists]);
+  useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
   useEffect(() => {
     localStorage.setItem('sb_supabase_url', supabaseUrl);
     localStorage.setItem('sb_supabase_key', supabaseKey);
@@ -232,9 +231,9 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-lg font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent leading-none">
-                  Smart Cashflow
+                  FlowBudget
                 </h1>
-                <p className="text-xs text-slate-400 mt-0.5">Budget & 30-90 Day Projection</p>
+                <p className="text-xs text-slate-400 mt-0.5">Cashflow & Smart AI Planner</p>
               </div>
             </div>
 
@@ -255,6 +254,17 @@ export default function App() {
             >
               <Calendar className="w-4 h-4" />
               Cashflow Projection
+            </button>
+            <button
+              onClick={() => setActiveTab('lists')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                activeTab === 'lists'
+                  ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md shadow-emerald-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              <ListPlus className="w-4 h-4" />
+              Lists & AI Estimates
             </button>
             <button
               onClick={() => setActiveTab('entry')}
@@ -319,6 +329,15 @@ export default function App() {
             onOpenAddPlan={() => { setEditingPlan(null); setIsPlanModalOpen(true); }}
             onEditPlan={(plan) => { setEditingPlan(plan); setIsPlanModalOpen(true); }}
             onDeletePlan={handleDeletePlan}
+          />
+        )}
+
+        {activeTab === 'lists' && (
+          <ShoppingListsView
+            geminiApiKey={geminiApiKey}
+            shoppingLists={shoppingLists}
+            setShoppingLists={setShoppingLists}
+            onAddTransaction={handleAddTransaction}
           />
         )}
 
@@ -690,6 +709,261 @@ function CashflowView({
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// NEW COMPONENT: SHOPPING LISTS & AI COST ESTIMATION
+function ShoppingListsView({ geminiApiKey, shoppingLists, setShoppingLists, onAddTransaction }) {
+  const [selectedCategory, setSelectedCategory] = useState('Foods');
+  const [listTitle, setListTitle] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  const categories = [
+    { id: 'Foods', label: 'Foods & Groceries', icon: ShoppingBag, color: 'text-emerald-400' },
+    { id: 'Tools', label: 'Tools & Hardware', icon: Wrench, color: 'text-amber-400' },
+    { id: 'Car', label: 'Car Parts & Repair', icon: Car, color: 'text-blue-400' },
+    { id: 'Project', label: 'Projects & Building', icon: Hammer, color: 'text-purple-400' },
+    { id: 'Other', label: 'Other & Various', icon: Package, color: 'text-slate-400' }
+  ];
+
+  const handleEstimateCost = async (e) => {
+    e.preventDefault();
+    if (!rawText.trim() || !listTitle.trim()) return;
+
+    if (!geminiApiKey) {
+      alert('Please enter your Gemini API key in Settings first!');
+      return;
+    }
+
+    setIsEstimating(true);
+
+    try {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+      const systemPrompt = `You are an AI purchasing & market price estimation assistant for Serbia/Balkans.
+        Analyze the following user shopping list under category '${selectedCategory}'.
+        For each line item, estimate the current average retail price in Serbian Dinars (RSD).
+        
+        Respond strictly with JSON matching this structure:
+        {
+          "estimatedItems": [
+            { "item": "string", "qty": "string", "estimatedPriceRSD": number }
+          ],
+          "totalEstimatedRSD": number,
+          "summaryNote": "Short 1-sentence budget tip or summary in Serbian/English"
+        }
+        
+        Shopping List Input:
+        ${rawText}`;
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+
+      const data = await res.json();
+      const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (responseText) {
+        const parsed = JSON.parse(responseText);
+
+        const newList = {
+          id: 'list-' + Date.now(),
+          title: listTitle,
+          category: selectedCategory,
+          rawText,
+          estimatedItems: parsed.estimatedItems || [],
+          totalEstimatedRSD: parsed.totalEstimatedRSD || 0,
+          summaryNote: parsed.summaryNote || '',
+          date: new Date().toISOString().split('T')[0]
+        };
+
+        setShoppingLists(prev => [newList, ...prev]);
+        setListTitle('');
+        setRawText('');
+      } else {
+        alert('Could not generate estimate. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error communicating with Gemini AI: ' + err.message);
+    } finally {
+      setIsEstimating(false);
+    }
+  };
+
+  const handleDeleteList = (id) => {
+    setShoppingLists(prev => prev.filter(l => l.id !== id));
+  };
+
+  const handleAddListToExpenses = (list) => {
+    onAddTransaction({
+      id: 'tx-' + Date.now(),
+      title: `[List] ${list.title}`,
+      amount: list.totalEstimatedRSD,
+      type: 'Expense',
+      category: list.category === 'Foods' ? 'Food' : list.category === 'Car' ? 'Transport' : 'Other',
+      merchant: 'Planned Purchase',
+      date: new Date().toISOString().split('T')[0]
+    });
+    alert(`List "${list.title}" added to cashflow as planned expense of ${formatCurrency(list.totalEstimatedRSD)}!`);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <Calculator className="w-5 h-5 text-emerald-400" />
+          Shopping Lists & AI Cost Estimation
+        </h3>
+        <p className="text-xs text-slate-400 mt-0.5">Write a list for groceries, car parts, tools, or building projects. AI estimates market prices automatically.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Form */}
+        <div className="lg:col-span-1 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+          <h4 className="text-sm font-bold text-white flex items-center gap-2">
+            <Plus className="w-4 h-4 text-emerald-400" /> Create New List
+          </h4>
+
+          <form onSubmit={handleEstimateCost} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase">Category</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {categories.map(cat => {
+                  const Icon = cat.icon;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-2 border transition-all ${
+                        selectedCategory === cat.id
+                          ? 'bg-emerald-500/20 border-emerald-500 text-white'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${cat.color}`} />
+                      <span>{cat.id}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase">List Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Maxi Weekly Shop, Astra H Service, YTONG Wall"
+                required
+                value={listTitle}
+                onChange={(e) => setListTitle(e.target.value)}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase">Items List (One per line)</label>
+              <textarea
+                rows={5}
+                placeholder="Write items here, e.g.:&#10;2x Coca-Cola 1.5L&#10;1kg Chicken Breast&#10;10x YTONG blocks 12cm"
+                required
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 text-xs text-white focus:outline-none font-mono"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isEstimating}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              {isEstimating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              <span>{isEstimating ? 'Estimating Prices...' : 'Estimate Cost with AI'}</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Right Column: Saved Lists & Estimates */}
+        <div className="lg:col-span-2 space-y-4">
+          <h4 className="text-sm font-bold text-white flex items-center justify-between">
+            <span>Saved Lists & Estimates ({shoppingLists.length})</span>
+          </h4>
+
+          {shoppingLists.length === 0 ? (
+            <div className="bg-slate-900/80 p-12 rounded-2xl border border-dashed border-slate-800 text-center text-slate-500 text-xs">
+              No shopping lists created yet. Write a list on the left and click "Estimate Cost with AI" to calculate market costs!
+            </div>
+          ) : (
+            shoppingLists.map(list => (
+              <div key={list.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold uppercase">
+                      {list.category}
+                    </span>
+                    <h5 className="font-bold text-white text-sm">{list.title}</h5>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-extrabold text-emerald-400 text-base font-mono">
+                      ~{formatCurrency(list.totalEstimatedRSD)}
+                    </span>
+                    <button onClick={() => handleDeleteList(list.id)} className="text-slate-600 hover:text-rose-400 p-1">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {list.summaryNote && (
+                  <p className="text-xs text-slate-400 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 italic">
+                    💡 {list.summaryNote}
+                  </p>
+                )}
+
+                {/* Items Breakdown Table */}
+                <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/40">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-950 text-slate-500 border-b border-slate-800 uppercase text-[10px]">
+                        <th className="p-2.5">Item</th>
+                        <th className="p-2.5">Qty</th>
+                        <th className="p-2.5 text-right">Est. Price (RSD)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50 font-mono">
+                      {list.estimatedItems.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-800/30">
+                          <td className="p-2.5 text-slate-200 font-sans">{item.item}</td>
+                          <td className="p-2.5 text-slate-400">{item.qty || '1'}</td>
+                          <td className="p-2.5 text-right text-emerald-400 font-bold">{formatCurrency(item.estimatedPriceRSD)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    onClick={() => handleAddListToExpenses(list)}
+                    className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add to Cashflow
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -1212,7 +1486,7 @@ function SettingsView({
         </p>
 
         <div>
-          <label className="text-[11px] font-semibold text-slate-400 uppercase">Starting Balance</label>
+          <label className="text-[11px] font-semibold text-slate-400 uppercase font-mono">Starting Balance (RSD)</label>
           <input
             type="number"
             value={startingBalance}
@@ -1226,10 +1500,10 @@ function SettingsView({
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-emerald-400" />
-          Gemini API Key (Receipt Reader)
+          Gemini API Key (Receipt Reader & List Cost Estimator)
         </h3>
         <p className="text-xs text-slate-400">
-          Enter your Gemini API key from Google AI Studio to enable automatic camera receipt reading.
+          Enter your Gemini API key from Google AI Studio to enable automatic receipt reading and AI shopping list cost estimation.
         </p>
 
         <div>
@@ -1353,10 +1627,10 @@ function PlanModal({ plan, onSave, onClose }) {
           </div>
 
           <div>
-            <label className="text-[11px] font-semibold text-slate-400 uppercase">Amount</label>
+            <label className="text-[11px] font-semibold text-slate-400 uppercase">Amount (RSD)</label>
             <input
               type="number"
-              placeholder="e.g. 1200"
+              placeholder="e.g. 12000"
               required
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
