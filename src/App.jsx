@@ -16,7 +16,10 @@ import {
   Clock,
   Layers,
   Check,
-  X
+  X,
+  ShoppingBag,
+  Search,
+  Upload
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -30,7 +33,6 @@ const CATEGORIES = [
   { id: 'Other', label: 'Other Expenses', icon: '📦', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' }
 ];
 
-// ZERO INITIAL STATE: Clean empty arrays for production initialization
 const INITIAL_TRANSACTIONS = [];
 const INITIAL_CASHFLOW_PLANS = [];
 
@@ -45,7 +47,7 @@ const formatDate = (dateStr) => {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('cashflow'); // 'cashflow' | 'entry' | 'analytics' | 'settings'
+  const [activeTab, setActiveTab] = useState('cashflow');
 
   const [startingBalance, setStartingBalance] = useState(() => {
     const saved = localStorage.getItem('sb_starting_balance');
@@ -266,6 +268,17 @@ export default function App() {
               Expenses & OCR Scan
             </button>
             <button
+              onClick={() => setActiveTab('groceries')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                activeTab === 'groceries'
+                  ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md shadow-emerald-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Grocery Items
+            </button>
+            <button
               onClick={() => setActiveTab('analytics')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                 activeTab === 'analytics'
@@ -291,7 +304,6 @@ export default function App() {
         </div>
       </header>
 
-      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {activeTab === 'cashflow' && (
           <CashflowView
@@ -317,6 +329,10 @@ export default function App() {
             transactions={transactions}
             onDeleteTransaction={handleDeleteTransaction}
           />
+        )}
+
+        {activeTab === 'groceries' && (
+          <GroceryTrackerView transactions={transactions} />
         )}
 
         {activeTab === 'analytics' && (
@@ -474,7 +490,6 @@ function CashflowView({
         </div>
       </div>
 
-      {}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -526,7 +541,6 @@ function CashflowView({
         </div>
       </div>
 
-      {}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 flex flex-col h-full">
           <div className="flex items-center justify-between">
@@ -694,7 +708,7 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
 
   const [isScanning, setIsScanning] = useState(false);
   const [ocrError, setOcrError] = useState('');
-  const [scanPreview, setScanPreview] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const fileInputRef = useRef(null);
 
   const handleSubmit = (e) => {
@@ -708,7 +722,8 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
       type: formData.type,
       category: formData.category,
       merchant: formData.merchant || 'General Merchant',
-      date: formData.date
+      date: formData.date,
+      items: formData.items || []
     });
 
     setFormData({
@@ -717,86 +732,102 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
       type: 'Expense',
       category: 'Food',
       merchant: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      items: []
     });
-    setScanPreview(null);
+    setSelectedFiles([]);
   };
 
-  const handleReceiptScan = async (file) => {
-    if (!file) return;
+  const handleReceiptScan = async () => {
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Image = reader.result.split(',')[1];
-      const mimeType = file.type || 'image/jpeg';
-      setScanPreview(reader.result);
+    if (!geminiApiKey) {
+      setOcrError('Please enter a valid Gemini API Key in Settings to enable receipt AI reading.');
+      return;
+    }
 
-      if (!geminiApiKey) {
-        setOcrError('Please enter a valid Gemini API Key in Settings to enable receipt AI reading.');
-        return;
-      }
+    setIsScanning(true);
+    setOcrError('');
 
-      setIsScanning(true);
-      setOcrError('');
-
-      try {
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
-
-        const systemPrompt = `Analyze this receipt image carefully. Extract and return JSON with keys:
-          - amount (number in numeric format without text)
-          - merchant (string, store/company name)
-          - date (string in YYYY-MM-DD format)
-          - category (choose exactly one: 'Food', 'Utilities', 'Transport', 'Housing', 'Entertainment', 'Health', 'Other')
-          - title (short concise description in English, e.g., 'Grocery purchase')`;
-
-        const payload = {
-          contents: [{
-            role: 'user',
-            parts: [
-              { text: systemPrompt },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Image
-                }
+    try {
+      const imageParts = await Promise.all(
+        selectedFiles.map(file => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve({
+              inlineData: {
+                data: reader.result.split(',')[1],
+                mimeType: file.type || 'image/jpeg'
               }
-            ]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        };
-
-        const res = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (responseText) {
-          const parsed = JSON.parse(responseText);
-          setFormData({
-            title: parsed.title || 'Receipt Purchase',
-            amount: parsed.amount || '',
-            type: 'Expense',
-            category: parsed.category || 'Food',
-            merchant: parsed.merchant || '',
-            date: parsed.date || new Date().toISOString().split('T')[0]
+            });
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
           });
-        } else {
-          setOcrError('Could not extract data from the receipt image. Please try again.');
+        })
+      );
+
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+      const systemPrompt = `Analyze these receipt images (Note: They might be multiple parts of the SAME receipt).
+        Extract and return JSON with keys:
+        - pfrNumber (string or null, extract the unique Serbian fiscal PFR number if present)
+        - amount (number in numeric format)
+        - merchant (string, store name e.g., Maxi, Lidl, Tempo)
+        - date (string in YYYY-MM-DD format)
+        - category (choose exactly one: 'Food', 'Utilities', 'Transport', 'Housing', 'Entertainment', 'Health', 'Other')
+        - title (short concise description in English)
+        - items (array of items with keys: "name", "quantity", "price", "unit")`;
+
+      const payload = {
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: systemPrompt },
+            ...imageParts
+          ]
+        }],
+        generationConfig: {
+          responseMimeType: "application/json"
         }
-      } catch (err) {
-        console.error('Gemini OCR Error:', err);
-        setOcrError('Error calling Gemini AI. Please verify your API Key in Settings.');
-      } finally {
-        setIsScanning(false);
+      };
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (responseText) {
+        const parsed = JSON.parse(responseText);
+
+        if (parsed.pfrNumber && transactions.some(t => t.pfrNumber === parsed.pfrNumber)) {
+          setOcrError(`Duplicate receipt detected! Receipt with PFR #${parsed.pfrNumber} is already logged.`);
+          setIsScanning(false);
+          return;
+        }
+
+        setFormData({
+          title: parsed.title || 'Receipt Purchase',
+          amount: parsed.amount || '',
+          type: 'Expense',
+          category: parsed.category || 'Food',
+          merchant: parsed.merchant || '',
+          date: parsed.date || new Date().toISOString().split('T')[0],
+          pfrNumber: parsed.pfrNumber || null,
+          items: parsed.items || []
+        });
+      } else {
+        setOcrError('Could not extract data from the receipt image. Please try again.');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Gemini OCR Error:', err);
+      setOcrError('Error calling Gemini AI. Please verify your API Key in Settings.');
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -806,54 +837,48 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-sm font-bold text-white">Gemini AI Receipt Reader</h3>
+              <h3 className="text-sm font-bold text-white">Multi-Part Receipt AI Reader</h3>
             </div>
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">OCR Auto</span>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">Anti-Duplicate</span>
           </div>
 
           <p className="text-xs text-slate-400">
-            Snap or upload a receipt image. AI extracts merchant, amount, category, and date automatically.
+            Snap 1 to 3 images of long receipts. AI stitches them together, extracts items, and guards against duplicate PFR entries.
           </p>
 
           <input
             type="file"
+            multiple
             accept="image/*"
             capture="environment"
             ref={fileInputRef}
-            onChange={(e) => handleReceiptScan(e.target.files[0])}
+            onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
             className="hidden"
           />
 
-          {scanPreview ? (
-            <div className="relative rounded-xl overflow-hidden border border-slate-700 h-40 group">
-              <img src={scanPreview} alt="Receipt Preview" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-emerald-500 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Retake Photo
-                </button>
-              </div>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-slate-800 hover:border-emerald-500/50 bg-slate-950/60 rounded-xl p-6 text-center cursor-pointer transition-all space-y-2 group"
+          >
+            <div className="w-12 h-12 rounded-full bg-slate-900 group-hover:bg-emerald-500/20 flex items-center justify-center mx-auto transition-colors">
+              <Camera className="w-6 h-6 text-emerald-400" />
             </div>
-          ) : (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-800 hover:border-emerald-500/50 bg-slate-950/60 rounded-xl p-6 text-center cursor-pointer transition-all space-y-2 group"
-            >
-              <div className="w-12 h-12 rounded-full bg-slate-900 group-hover:bg-emerald-500/20 flex items-center justify-center mx-auto transition-colors">
-                <Camera className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div className="text-xs font-semibold text-slate-300">Snap or Upload Receipt</div>
-              <p className="text-[10px] text-slate-500">Supports JPG, PNG, WEBP</p>
+            <div className="text-xs font-semibold text-slate-300">
+              {selectedFiles.length > 0 ? `${selectedFiles.length} Photo(s) Selected` : 'Snap or Upload Receipts'}
             </div>
-          )}
+            <p className="text-[10px] text-slate-500">Supports multi-part photos for long receipts</p>
+          </div>
 
-          {isScanning && (
-            <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 font-semibold py-2">
-              <RefreshCw className="w-4 h-4 animate-spin" /> Gemini AI reading receipt...
-            </div>
+          {selectedFiles.length > 0 && (
+            <button
+              type="button"
+              onClick={handleReceiptScan}
+              disabled={isScanning}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              {isScanning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+              <span>{isScanning ? 'Analyzing Receipts...' : 'Process Selected Photos'}</span>
+            </button>
           )}
 
           {ocrError && (
@@ -948,7 +973,7 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
               <label className="text-[11px] font-semibold text-slate-400 uppercase">Merchant / Client</label>
               <input
                 type="text"
-                placeholder="e.g. Target, Shell, Client"
+                placeholder="e.g. Maxi, Lidl, Shell"
                 value={formData.merchant}
                 onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
                 className="w-full mt-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
@@ -999,6 +1024,7 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
                         <span>{t.merchant}</span>
                         <span>•</span>
                         <span>{formatDate(t.date)}</span>
+                        {t.pfrNumber && <span className="font-mono bg-slate-800 px-1 rounded">PFR: {t.pfrNumber}</span>}
                       </div>
                     </div>
                   </div>
@@ -1025,6 +1051,75 @@ function DailyEntryView({ geminiApiKey, onAddTransaction, transactions, onDelete
             })
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GroceryTrackerView({ transactions }) {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const groceryItems = useMemo(() => {
+    const itemMap = {};
+    transactions.forEach(tx => {
+      if (tx.items && Array.isArray(tx.items)) {
+        tx.items.forEach(item => {
+          const key = item.name?.toLowerCase().trim() || 'item';
+          if (!itemMap[key]) {
+            itemMap[key] = { name: item.name, totalQty: 0, totalSpent: 0, count: 0, unit: item.unit || 'pcs' };
+          }
+          itemMap[key].totalQty += Number(item.quantity || 1);
+          itemMap[key].totalSpent += Number(item.price || 0) * Number(item.quantity || 1);
+          itemMap[key].count += 1;
+        });
+      }
+    });
+    return Object.values(itemMap).filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [transactions, searchTerm]);
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-emerald-400" />
+              Smart Grocery & Item Analytics
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">Track exact item quantities (soda, bread, meat) across receipts</p>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search item (e.g. Coca-Cola)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {groceryItems.length === 0 ? (
+          <div className="col-span-full bg-slate-900/80 p-12 rounded-2xl border border-dashed border-slate-800 text-center text-slate-500 text-xs">
+            No item-level data extracted yet. Scan detailed grocery receipts in OCR view to automatically track items!
+          </div>
+        ) : (
+          groceryItems.map((item, idx) => (
+            <div key={idx} className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+              <div>
+                <p className="font-bold text-slate-200 text-xs capitalize">{item.name}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Logged in {item.count} receipt(s)</p>
+              </div>
+              <div className="text-right">
+                <p className="font-extrabold text-emerald-400 font-mono text-sm">{item.totalQty} {item.unit}</p>
+                <p className="text-[10px] text-slate-400 font-mono">{formatCurrency(item.totalSpent)} total</p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
