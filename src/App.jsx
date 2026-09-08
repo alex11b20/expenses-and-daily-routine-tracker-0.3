@@ -76,7 +76,7 @@ export default function App() {
 
   const formatCurrency = (val) => {
     const curr = WORLD_CURRENCIES.find(c => c.code === selectedCurrency) || WORLD_CURRENCIES[0];
-    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
+    return[cite: 3]new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
   };
 
   const [startingBalance, setStartingBalance] = useState(() => Number(localStorage.getItem('sb_starting_balance')) || 0);
@@ -159,7 +159,7 @@ export default function App() {
     }
 
     const safeBuffer = Math.max(0, Number(startingBalance) - totalExpensesBeforeNextIncome);
-    return {
+    return[cite: 3]{
       dailyProjections: projections,
       safeToSpendToday: Math.round(safeBuffer * 0.85),
       lowestProjectedBalance: lowestBal
@@ -226,7 +226,7 @@ export default function App() {
         </div>
       )}
 
-      {isPlanModalOpen && <PlanModal theme={theme} plan={editingPlan} onSave={(p) => setCashflowPlans(prev => [...prev, { ...p, id: 'plan-' + Date.now() }])} onClose={() => { setIsPlanModalOpen(false); setEditingPlan(null); }} />}
+      {isPlanModalOpen && <PlanModal theme={theme} onSave={(p) => setCashflowPlans(prev => [...prev, { ...p, id: 'plan-' + Date.now() }])} onClose={() => { setIsPlanModalOpen(false); setEditingPlan(null); }} />}
     </div>
   );
 }
@@ -234,6 +234,8 @@ export default function App() {
 function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onDeletePlan }) {
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
+  const [activeSubTab, setActiveSubTab] = useState('rules'); // SharePoint-style sub-tab state
+
   const minBal = Math.min(...dailyProjections.map(d => d.endingBalance), 0);
   const maxBal = Math.max(...dailyProjections.map(d => d.endingBalance), 100);
   const range = (maxBal - minBal) || 1;
@@ -273,6 +275,7 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
           </div>
         </div>
       </div>
+      
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
         <h3 className="text-base font-bold flex items-center gap-2"><TrendingUp className={`w-5 h-5 ${theme.textAccent}`} /> Daily Balance Projection ({projectionDays} Days)</h3>
         <div className="h-56 w-full relative pt-4 pb-2">
@@ -281,26 +284,66 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
           </svg>
         </div>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between"><h4 className="text-sm font-bold">Planned Rules</h4><button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Plus className="w-4 h-4" /> Add Plan</button></div>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {cashflowPlans.map(p => (
-              <div key={p.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
-                <div><p className="font-bold">{p.title}</p><p className="opacity-50">{p.frequency}</p></div>
-                <div className="flex items-center gap-2"><span className={`font-bold ${p.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(p.amount)}</span><button onClick={() => onDeletePlan(p.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
-              </div>
-            ))}
+        {/* EXPENSES PLANNER (Zamenjeno mesto gde je bilo Planned Rules, sa SharePoint tabovima unutra) */}
+        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4 flex flex-col">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold">Expenses Planner</h4>
+            <button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Plus className="w-4 h-4" /> Add Plan</button>
           </div>
+
+          {/* SharePoint-style sub-tabs */}
+          <div className="flex gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+            <button onClick={() => setActiveSubTab('rules')} className={`flex-1 py-1.5 rounded-lg transition-all ${activeSubTab === 'rules' ? theme.btnPrimary : 'opacity-60'}`}>Active Rules</button>
+            <button onClick={() => setActiveSubTab('notes')} className={`flex-1 py-1.5 rounded-lg transition-all ${activeSubTab === 'notes' ? theme.btnPrimary : 'opacity-60'}`}>Quick Notes</button>
+          </div>
+
+          {activeSubTab === 'rules' ? (
+            <div className="space-y-2.5 overflow-y-auto max-h-[300px]">
+              {cashflowPlans.length === 0 ? (
+                <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans added yet.</p>
+              ) : (
+                cashflowPlans.map(p => (
+                  <div key={p.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+                    <div>
+                      <p className="font-bold">{p.title}</p>
+                      <p className="opacity-50">{p.frequency}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold ${p.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(p.amount)}</span>
+                      <button onClick={() => onDeletePlan(p.id)} className="text-slate-600 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2 text-xs opacity-80 p-2 bg-slate-950 rounded-xl border border-slate-800 min-h-[150px]">
+              <p className="font-bold">SharePoint Workspace Notes:</p>
+              <textarea placeholder="Write quick budgeting reminders here..." className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none h-24 font-mono text-slate-100" />
+            </div>
+          )}
         </div>
-        <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+
+        <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
           <h4 className="text-sm font-bold">Forecast Table</h4>
-          <div className="overflow-x-auto rounded-xl border border-slate-800 max-h-[300px]">
+          <div className="overflow-x-auto rounded-xl border border-slate-800 max-h-[350px]">
             <table className="w-full text-left text-xs">
-              <thead><tr className="bg-slate-950 border-b border-slate-800 opacity-60 text-[10px]"><th className="p-3">Date</th><th className="p-3">Starting</th><th className="p-3 text-right">Ending</th></tr></thead>
+              <thead>
+                <tr className="bg-slate-950 border-b border-slate-800 opacity-60 text-[10px]">
+                  <th className="p-3">Date</th>
+                  <th className="p-3">Starting</th>
+                  <th className="p-3 text-right">Ending</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
                 {dailyProjections.map(d => (
-                  <tr key={d.date} className="hover:bg-slate-800/40"><td className="p-3 font-sans">{d.displayDate}</td><td className="p-3 opacity-60">{formatCurrency(d.startingBalance)}</td><td className="p-3 text-right font-bold">{formatCurrency(d.endingBalance)}</td></tr>
+                  <tr key={d.date} className="hover:bg-slate-800/40">
+                    <td className="p-3 font-sans">{d.displayDate}</td>
+                    <td className="p-3 opacity-60">{formatCurrency(d.startingBalance)}</td>
+                    <td className="p-3 text-right font-bold">{formatCurrency(d.endingBalance)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -403,6 +446,32 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Ručni unos za buvljak / kada kamera ne radi
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualAmount, setManualAmount] = useState('');
+  const [manualMerchant, setManualMerchant] = useState('');
+  const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const handleManualSubmit = (e) => {
+    e.preventDefault();
+    if (!manualTitle.trim() || !manualAmount) return;
+
+    onAddTransaction({
+      id: 'tx-' + Date.now(),
+      title: manualTitle,
+      amount: Number(manualAmount),
+      type: 'Expense',
+      category: 'Other',
+      merchant: manualMerchant || 'Flea Market / Manual',
+      date: manualDate,
+      items: [{ name: manualTitle, quantity: 1, price: Number(manualAmount) }]
+    });
+
+    setManualTitle('');
+    setManualAmount('');
+    setManualMerchant('');
+  };
+
   const handleReceiptScan = async () => {
     if (!selectedFiles.length || !geminiApiKey) {
       alert('Please configure your Gemini API key in Settings -> Admin API Config first.');
@@ -432,15 +501,31 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 space-y-4 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl">
-        <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className={`w-4 h-4 ${theme.textAccent}`} /> OCR Scanner</h3>
-        <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={(e) => setSelectedFiles(Array.from(e.target.files))} className="hidden" />
-        <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 p-6 rounded-xl text-center cursor-pointer hover:border-slate-700">
-          <Camera className={`w-8 h-8 mx-auto mb-2 ${theme.textAccent}`} />
-          <p className="text-xs font-semibold">{selectedFiles.length > 0 ? `${selectedFiles.length} photos selected` : 'Upload Receipt Photos'}</p>
+      <div className="lg:col-span-1 space-y-6">
+        {/* OCR Scanner sekcija */}
+        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+          <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className={`w-4 h-4 ${theme.textAccent}`} /> OCR Camera Scanner</h3>
+          <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={(e) => setSelectedFiles(Array.from(e.target.files))} className="hidden" />
+          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 p-6 rounded-xl text-center cursor-pointer hover:border-slate-700">
+            <Camera className={`w-8 h-8 mx-auto mb-2 ${theme.textAccent}`} />
+            <p className="text-xs font-semibold">{selectedFiles.length > 0 ? `${selectedFiles.length} photos selected` : 'Upload Receipt Photos'}</p>
+          </div>
+          {selectedFiles.length > 0 && <button onClick={handleReceiptScan} disabled={isScanning} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>{isScanning ? 'Scanning...' : 'Process Photos'}</button>}
         </div>
-        {selectedFiles.length > 0 && <button onClick={handleReceiptScan} disabled={isScanning} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>{isScanning ? 'Scanning...' : 'Process Photos'}</button>}
+
+        {/* Ručni unos (Za buvljak i kad kamera ne radi) */}
+        <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Manual Entry (Flea Market / Other)</h3>
+          <form onSubmit={handleManualSubmit} className="space-y-3">
+            <input type="text" placeholder="Item / Expense Title" required value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+            <input type="number" placeholder="Amount" required value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none font-mono" />
+            <input type="text" placeholder="Merchant / Location (e.g. Flea Market)" value={manualMerchant} onChange={(e) => setManualMerchant(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+            <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none font-mono" />
+            <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Add Manual Expense</button>
+          </form>
+        </div>
       </div>
+
       <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
         <h3 className="text-sm font-bold">Transaction History Log</h3>
         <div className="divide-y divide-slate-800 max-h-[500px] overflow-y-auto">
