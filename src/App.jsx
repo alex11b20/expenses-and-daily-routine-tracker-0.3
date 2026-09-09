@@ -51,7 +51,24 @@ const WORLD_CURRENCIES = [
   { code: 'EUR', name: 'Euro', symbol: '€' },
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' }
+  { code: 'GBP', name: 'British Pound', symbol: '£' },
+  { code: 'BAM', name: 'Bosnia-Herzegovina Convertible Mark', symbol: 'KM' },
+  { code: 'MKD', name: 'Macedonian Denar', symbol: 'den' },
+  { code: 'RUB', name: 'Russian Ruble', symbol: '₽' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'AED' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+  { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
+  { code: 'TRY', name: 'Turkish Lira', symbol: '₺' },
+  { code: 'SEK', name: 'Swedish Krona', symbol: 'kr' },
+  { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr' },
+  { code: 'DKK', name: 'Danish Krone', symbol: 'kr' },
+  { code: 'PLN', name: 'Polish Zloty', symbol: 'zł' },
+  { code: 'HUF', name: 'Hungarian Forint', symbol: 'Ft' },
+  { code: 'CZK', name: 'Czech Koruna', symbol: 'Kč' },
+  { code: 'BGN', name: 'Bulgarian Lev', symbol: 'lv' },
+  { code: 'RON', name: 'Romanian Leu', symbol: 'lei' }
 ];
 
 const CATEGORIES = [
@@ -66,20 +83,29 @@ const CATEGORIES = [
 ];
 
 const FINANCIAL_FUN_FACTS = [
-  "💡 Fun Fact: The word 'bankrupt' comes from the Italian 'banca rotta', meaning 'broken bench'!",
-  "💡 Fun Fact: Monopoly prints more money every year than the US Bureau of Engraving and Printing does for real currency!",
-  "💡 Fun Fact: In 1913, the entire US Income Tax form was just a single page long!",
+  "💡 Fun Fact: The word 'bankrupt' comes from the Italian 'banca rotta', meaning 'broken bench' — because when a Renaissance banker ran out of money, authorities literally smashed his bench![cite: 1]",
+  "💡 Fun Fact: Monopoly prints more money every year than the US Bureau of Engraving and Printing does for real currency![cite: 1]",
+  "💡 Fun Fact: Pigs were chosen as piggy banks because 'pygg' was an old English word for a cheap orange clay used to make jars. Potteries started shaping them like actual pigs![cite: 1]",
+  "💡 Fun Fact: In 1913, the entire US Income Tax form was just a single page long![cite: 1]",
+  "💡 Fun Fact: The credit card was invented in 1949 because Frank McNamara forgot his wallet while dining at a restaurant in New York City![cite: 1]"
 ];
 
 const THEMES = {
   'electric-blue': { name: 'Electric Blue', btnPrimary: 'bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold', textAccent: 'text-blue-400', borderAccent: 'border-blue-500/40', bgAccent: 'bg-blue-500/10', chartColor: '#3b82f6', bgGlow: 'from-blue-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
   'emerald-green': { name: 'Emerald Green', btnPrimary: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold', textAccent: 'text-emerald-400', borderAccent: 'border-emerald-500/40', bgAccent: 'bg-emerald-500/10', chartColor: '#10b981', bgGlow: 'from-emerald-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
-  'pure-black': { name: 'Pure Onyx', btnPrimary: 'bg-slate-100 hover:bg-white text-slate-950 font-bold', textAccent: 'text-slate-100', borderAccent: 'border-slate-700', bgAccent: 'bg-slate-800/60', chartColor: '#f8fafc', bgGlow: 'from-slate-900', cardBg: 'bg-black/90', cardBorder: 'border-slate-800' }
+  'ruby-red': { name: 'Ruby Red', btnPrimary: 'bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold', textAccent: 'text-rose-400', borderAccent: 'border-rose-500/40', bgAccent: 'bg-rose-500/10', chartColor: '#f43f5e', bgGlow: 'from-rose-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
+  'sky-blue': { name: 'Sky Blue', btnPrimary: 'bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold', textAccent: 'text-sky-400', borderAccent: 'border-sky-400/40', bgAccent: 'bg-sky-400/10', chartColor: '#38bdf8', bgGlow: 'from-sky-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
+  'amber-gold': { name: 'Amber Gold', btnPrimary: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold', textAccent: 'text-amber-400', borderAccent: 'border-amber-400/40', bgAccent: 'bg-amber-400/10', chartColor: '#fbbf24', bgGlow: 'from-amber-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
+  'pure-black': { name: 'Pure Onyx', btnPrimary: 'bg-slate-100 hover:bg-white text-slate-950 font-bold', textAccent: 'text-slate-100', borderAccent: 'border-slate-700', bgAccent: 'bg-slate-800/60', chartColor: '#f8fafc', bgGlow: 'from-slate-900', cardBg: 'bg-black/90', cardBorder: 'border-slate-800' },
+  'light-mode': { name: 'Light Clean', btnPrimary: 'bg-slate-900 hover:bg-slate-800 text-white font-bold', textAccent: 'text-slate-900', borderAccent: 'border-slate-300', bgAccent: 'bg-slate-200/80', chartColor: '#0f172a', bgGlow: 'from-slate-200', cardBg: 'bg-white/90', cardBorder: 'border-slate-200' }
 };
 
 const BACKGROUND_LIGHTING = {
   'smooth-blue-fade': { name: 'Smooth Midnight Blue Fade', bgClass: 'bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950' },
-  'onyx-dark': { name: 'Onyx Dark Solid', bgClass: 'bg-slate-950' }
+  'deep-ocean-fade': { name: 'Deep Ocean Blue Fade', bgClass: 'bg-gradient-to-b from-blue-950/90 via-slate-950 to-slate-950' },
+  'emerald-aura-fade': { name: 'Emerald Aura Fade', bgClass: 'bg-gradient-to-b from-emerald-950/80 via-slate-950 to-slate-950' },
+  'onyx-dark': { name: 'Onyx Dark Solid', bgClass: 'bg-slate-950' },
+  'light-clean': { name: 'Light Ambient', bgClass: 'bg-gradient-to-b from-slate-100 to-slate-200' }
 };
 
 const formatDate = (dateStr) => {
@@ -94,7 +120,6 @@ export default function App() {
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
-  // Core User Database & Auth
   const [usersDb, setUsersDb] = useState(() => {
     const saved = localStorage.getItem('sb_users_db');
     return saved ? JSON.parse(saved) : [];
@@ -125,7 +150,7 @@ export default function App() {
   const [cashflowPlans, setCashflowPlans] = useState(() => JSON.parse(localStorage.getItem('sb_cashflow_plans') || '[]'));
   const [shoppingLists, setShoppingLists] = useState(() => JSON.parse(localStorage.getItem('sb_shopping_lists') || '[]'));
   const [wishlistItems, setWishlistItems] = useState(() => JSON.parse(localStorage.getItem('sb_wishlist_items') || '[]'));
-  
+
   const [household, setHousehold] = useState(() => {
     const saved = localStorage.getItem('sb_household');
     if (saved) return JSON.parse(saved);
@@ -141,7 +166,6 @@ export default function App() {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
 
-  // Sync to Local Storage
   useEffect(() => { localStorage.setItem('sb_users_db', JSON.stringify(usersDb)); }, [usersDb]);
   useEffect(() => { localStorage.setItem('sb_user_profile', JSON.stringify(userProfile)); }, [userProfile]);
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
@@ -264,8 +288,8 @@ export default function App() {
   ];
 
   return (
-    <div className={`min-h-screen font-sans antialiased transition-colors duration-500 ${bgStyle.bgClass} text-slate-100`}>
-      {/* Required Authenticated Modal Blocks the UI for Guests */}
+    <div className={`min-h-screen font-sans antialiased transition-colors duration-500 ${currentTheme === 'light-mode' ? 'bg-slate-100 text-slate-900' : `${bgStyle.bgClass} text-slate-100`}`}>
+      
       {(!userProfile.loggedIn || showAuthModal) && (
         <AuthModal 
           theme={theme} 
@@ -285,7 +309,7 @@ export default function App() {
         </div>
       )}
 
-      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-4 py-3.5 sm:px-6 bg-slate-900/80 border-slate-800/80`}>
+      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-4 py-3.5 sm:px-6 ${currentTheme === 'light-mode' ? 'bg-white/90 border-slate-200' : 'bg-slate-900/80 border-slate-800/80'}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 ${theme.btnPrimary}`}>
@@ -316,7 +340,7 @@ export default function App() {
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs" onClick={() => setIsMenuOpen(false)} />
-                  <div className={`absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl border z-50 p-2 space-y-1 bg-slate-900 border-slate-800`}>
+                  <div className={`absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl border z-50 p-2 space-y-1 ${currentTheme === 'light-mode' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
                     {navItems.map(item => (
                       <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeTab === item.id ? `${theme.btnPrimary} shadow-md` : 'hover:bg-slate-800/50 opacity-70 hover:opacity-100'}`}>
                         <item.icon className="w-4 h-4" /><span>{item.label}</span>
@@ -345,9 +369,6 @@ export default function App() {
   );
 }
 
-// ---------------------------------------------------------
-// AUTHENTICATION MODAL (Fix for the bugs & logic requests)
-// ---------------------------------------------------------
 function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, onClose, pushNotification }) {
   const [isRegisterMode, setIsRegisterMode] = useState(!userProfile.loggedIn);
   const [email, setEmail] = useState(userProfile.email || '');
@@ -394,7 +415,6 @@ function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, on
     setUserProfile({ loggedIn: false, email: '', nickname: '', userId: '' });
   };
 
-  // Prevent closing the modal if the user is not authenticated
   const handleClose = () => {
     if (!userProfile.loggedIn) return;
     onClose();
@@ -404,7 +424,6 @@ function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, on
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
       <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 shadow-2xl`}>
         
-        {/* Enforced Onboarding Text Layout */}
         {!userProfile.loggedIn ? (
           <div className="text-center space-y-1 mb-6">
             <h2 className="text-2xl font-black text-slate-100">Hey, hello, welcome.</h2>
@@ -496,9 +515,6 @@ function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, on
   );
 }
 
-// ---------------------------------------------------------
-// REFACTORED CASHFLOW VIEW (Clean List, No Tabs)
-// ---------------------------------------------------------
 function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
@@ -570,7 +586,6 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Planned Income & Expenses - Cleared of tabs and static categories */}
         <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5 space-y-4 flex flex-col`}>
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-bold">Planned Income & Expenses</h4>
@@ -631,15 +646,723 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
   );
 }
 
-// ---------------------------------------------------------
-// Other necessary helper components for the UI to run
-// ---------------------------------------------------------
+function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, startingBalance, safeToSpendToday, onAddPlan, onAddTransaction }) {
+  const [formData, setFormData] = useState({ title: '', price: '', priority: 'Medium', category: 'Tech & Gadgets', notes: '' });
+
+  const totalWishValuation = useMemo(() => {
+    return wishlistItems.reduce((acc, curr) => acc + Number(curr.price || 0), 0);
+  }, [wishlistItems]);
+
+  const handleAddWish = (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.price) return;
+
+    setWishlistItems(prev => [
+      { id: 'wish-' + Date.now(), ...formData, price: Number(formData.price), createdAt: new Date().toISOString() },
+      ...prev
+    ]);
+
+    setFormData({ title: '', price: '', priority: 'Medium', category: 'Tech & Gadgets', notes: '' });
+  };
+
+  const handleDeleteWish = (id) => {
+    setWishlistItems(prev => prev.filter(w => w.id !== id));
+  };
+
+  const handleConvertToPlan = (wish) => {
+    onAddPlan({
+      id: 'plan-' + Date.now(),
+      title: `Wish: ${wish.title}`,
+      amount: wish.price,
+      type: 'Expense',
+      category: 'Other',
+      frequency: 'Once',
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      isActive: true
+    });
+  };
+
+  const handleBuyNow = (wish) => {
+    onAddTransaction({
+      id: 'tx-' + Date.now(),
+      title: wish.title,
+      amount: wish.price,
+      type: 'Expense',
+      category: 'Other',
+      merchant: 'Wishlist Purchase',
+      date: new Date().toISOString().split('T')[0]
+    });
+    handleDeleteWish(wish.id);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl`}>
+          <div className="flex items-center justify-between opacity-60 mb-1">
+            <span className="text-xs font-semibold uppercase">Total Wish List Cost</span>
+            <Gift className={`w-4 h-4 ${theme.textAccent}`} />
+          </div>
+          <p className="text-2xl font-black">{formatCurrency(totalWishValuation)}</p>
+          <p className="text-[10px] opacity-60 mt-1">{wishlistItems.length} future items on wishlist</p>
+        </div>
+
+        <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl`}>
+          <div className="flex items-center justify-between opacity-60 mb-1">
+            <span className="text-xs font-semibold uppercase">Affordability Check</span>
+            <Target className="w-4 h-4 text-emerald-400" />
+          </div>
+          <p className="text-2xl font-black text-emerald-400">{formatCurrency(safeToSpendToday)}</p>
+          <p className="text-[10px] opacity-60 mt-1">Safe to spend buffer currently available</p>
+        </div>
+
+        <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl flex flex-col justify-between`}>
+          <div className="flex items-center justify-between opacity-60 mb-1">
+            <span className="text-xs font-semibold uppercase">Highest Priority Wish</span>
+            <Heart className="w-4 h-4 text-rose-400" />
+          </div>
+          <p className="text-lg font-bold truncate">
+            {wishlistItems.find(w => w.priority === 'High')?.title || (wishlistItems[0]?.title || 'None yet')}
+          </p>
+          <span className="text-[10px] opacity-60">
+            {wishlistItems.length > 0 ? formatCurrency(wishlistItems.find(w => w.priority === 'High')?.price || wishlistItems[0]?.price) : 'Add your first wish below'}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4 lg:col-span-1`}>
+          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Add Future Wish Item</h3>
+          <form onSubmit={handleAddWish} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Item Name</label>
+              <input
+                type="text"
+                placeholder="e.g. 34' OLED Monitor, New PC, Dress..."
+                required
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Expected Price</label>
+              <input
+                type="number"
+                placeholder="e.g. 45000"
+                required
+                value={formData.price}
+                onChange={e => setFormData({ ...formData, price: e.target.value })}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none font-mono"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">Priority</label>
+                <select
+                  value={formData.priority}
+                  onChange={e => setFormData({ ...formData, priority: e.target.value })}
+                  className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                >
+                  <option value="High">🔥 High</option>
+                  <option value="Medium">⚡ Medium</option>
+                  <option value="Low">🌱 Low</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
+                <select
+                  value={formData.category}
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                >
+                  <option value="Tech & Gadgets">Tech & PC</option>
+                  <option value="Fashion">Clothing & Apparel</option>
+                  <option value="Home & Furniture">Home & Appliances</option>
+                  <option value="Animals & Farm">Animals & Pets</option>
+                  <option value="Travel & Fun">Travel & Fun</option>
+                  <option value="Other">Other Wish</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Notes / Specs</label>
+              <textarea
+                rows={2}
+                placeholder="Optional link, specs, color, model details..."
+                value={formData.notes}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none"
+              />
+            </div>
+
+            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>
+              Add to Wish List
+            </button>
+          </form>
+        </div>
+
+        <div className="lg:col-span-2 space-y-3">
+          {wishlistItems.length === 0 ? (
+            <div className={`${theme.cardBg} border border-dashed border-slate-800 rounded-2xl p-12 text-center opacity-50 text-xs space-y-2`}>
+              <Gift className="w-8 h-8 mx-auto opacity-40" />
+              <p className="font-bold">Your wish list is currently empty.</p>
+              <p>Add anything you plan to buy in the future to keep your cashflow clear until you're ready!</p>
+            </div>
+          ) : (
+            wishlistItems.map(wish => {
+              const isAffordableNow = safeToSpendToday >= wish.price;
+              return (
+                <div key={wish.id} className={`${theme.cardBg} border ${theme.cardBorder} p-4 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4`}>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                        wish.priority === 'High' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                        wish.priority === 'Medium' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                        'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                      }`}>
+                        {wish.priority} Priority
+                      </span>
+                      <span className="text-[10px] opacity-50 bg-slate-950 px-2 py-0.5 rounded-full border border-slate-800">{wish.category}</span>
+                      {isAffordableNow && (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Affordable Now
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-sm text-slate-100">{wish.title}</h4>
+                    {wish.notes && <p className="text-xs opacity-60 italic">{wish.notes}</p>}
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                    <div className="text-left sm:text-right">
+                      <span className={`text-base font-black font-mono ${theme.textAccent}`}>{formatCurrency(wish.price)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleConvertToPlan(wish)}
+                        title="Add to Planned Cashflow"
+                        className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-xs font-semibold flex items-center gap-1"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-blue-400" /> Plan
+                      </button>
+
+                      <button
+                        onClick={() => handleBuyNow(wish)}
+                        title="Log as Bought"
+                        className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 ${theme.btnPrimary}`}
+                      >
+                        <Check className="w-3.5 h-3.5" /> Buy
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteWish(wish.id)}
+                        className="p-2 text-slate-600 hover:text-rose-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingLists, setShoppingLists, formatCurrency, onAddTransaction }) {
+  const [selectedCategory, setSelectedCategory] = useState('Foods');
+  const [listTitle, setListTitle] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  const categories = [
+    { id: 'Foods', label: 'Foods & Groceries', icon: ShoppingBag },
+    { id: 'Tools', label: 'Tools & Hardware', icon: Wrench },
+    { id: 'Car', label: 'Car Parts & Repair', icon: Car },
+    { id: 'Project', label: 'Projects & Building', icon: Hammer },
+    { id: 'Other', label: 'Other & Various', icon: Package }
+  ];
+
+  const handleEstimateCost = async (e) => {
+    e.preventDefault();
+    if (!rawText.trim() || !listTitle.trim()) return;
+
+    if (!geminiApiKey) {
+      alert('Gemini API key is required for AI estimations. Please configure it in Settings.');
+      return;
+    }
+
+    setIsEstimating(true);
+    try {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+      const systemPrompt = `Analyze shopping list for '${selectedCategory}'. Estimate average retail price in ISO currency ${selectedCurrency}. Respond strictly with JSON: { "estimatedItems": [{ "item": "string", "qty": "string", "estimatedPrice": number }], "totalEstimated": number, "summaryNote": "string" }\nList:\n${rawText}`;
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }], generationConfig: { responseMimeType: "application/json" } })
+      });
+      const data = await res.json();
+      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+
+      setShoppingLists(prev => [{ id: 'list-' + Date.now(), title: listTitle, category: selectedCategory, rawText, estimatedItems: parsed.estimatedItems || [], totalEstimated: parsed.totalEstimated || 0, summaryNote: parsed.summaryNote || '', date: new Date().toISOString().split('T')[0] }, ...prev]);
+      setListTitle('');
+      setRawText('');
+    } catch (err) { alert('Estimation error: ' + err.message); } finally { setIsEstimating(false); }
+  };
+
+  const convertListToTransaction = (list) => {
+    onAddTransaction({
+      id: 'tx-' + Date.now(),
+      title: list.title,
+      amount: Number(list.totalEstimated) || 0,
+      type: 'Expense',
+      category: 'Food',
+      merchant: 'Shopping List Purchase',
+      date: new Date().toISOString().split('T')[0],
+      items: list.estimatedItems.map(i => ({ name: i.item, quantity: i.qty, price: i.estimatedPrice }))
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl`}>
+        <h3 className="text-base font-bold flex items-center gap-2"><Calculator className={`w-5 h-5 ${theme.textAccent}`} /> Grocery List & AI Market Cost Estimation</h3>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`lg:col-span-1 ${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
+          <form onSubmit={handleEstimateCost} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {categories.map(cat => (
+                  <button key={cat.id} type="button" onClick={() => setSelectedCategory(cat.id)} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-2 border ${selectedCategory === cat.id ? theme.btnPrimary : 'bg-slate-950 border-slate-800 opacity-60'}`}>{cat.id}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">List Title</label>
+              <input type="text" placeholder="e.g. Weekly Groceries" required value={listTitle} onChange={(e) => setListTitle(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Items List</label>
+              <textarea rows={5} placeholder="Write items here (e.g. 2x Milk 1L, 1kg Apples)..." required value={rawText} onChange={(e) => setRawText(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none font-mono" />
+            </div>
+            <button type="submit" disabled={isEstimating} className={`w-full font-bold py-3 rounded-xl text-xs uppercase ${theme.btnPrimary}`}>{isEstimating ? 'Estimating...' : 'Estimate Cost with AI'}</button>
+          </form>
+        </div>
+
+        <div className="lg:col-span-2 space-y-4">
+          {shoppingLists.length === 0 ? (
+            <div className={`${theme.cardBg} p-8 rounded-2xl border border-dashed border-slate-800 text-center opacity-50 text-xs`}>No saved shopping lists yet.</div>
+          ) : (
+            shoppingLists.map(list => (
+              <div key={list.id} className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5 space-y-3`}>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h5 className="font-bold text-sm">{list.title}</h5>
+                    <p className="text-[10px] opacity-60">{list.category} • {formatDate(list.date)}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-mono font-bold text-base ${theme.textAccent}`}>~{formatCurrency(list.totalEstimated)}</span>
+                    <button onClick={() => convertListToTransaction(list)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${theme.btnPrimary}`}>Log as Expense</button>
+                    <button onClick={() => setShoppingLists(prev => prev.filter(l => l.id !== list.id))} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+                {list.summaryNote && <p className="text-xs opacity-70 italic bg-slate-950 p-2.5 rounded-xl border border-slate-800">{list.summaryNote}</p>}
+                <div className="space-y-1">
+                  {list.estimatedItems?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-xs py-1 border-b border-slate-800/40">
+                      <span>{item.qty} {item.item}</span>
+                      <span className="font-mono opacity-80">{formatCurrency(item.estimatedPrice)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, formatCurrency, onDeleteTransaction }) {
+  const [formData, setFormData] = useState({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleManualSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.amount) return;
+
+    onAddTransaction({
+      id: 'tx-' + Date.now(),
+      title: formData.title,
+      amount: Number(formData.amount),
+      type: formData.type,
+      category: formData.category,
+      merchant: formData.merchant || 'General Merchant',
+      date: formData.date
+    });
+
+    setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
+  };
+
+  const handleReceiptScan = async () => {
+    if (!selectedFiles.length) return;
+    if (!geminiApiKey) {
+      alert('Gemini API key is missing. Please add your key in Settings or Admin Config.');
+      return;
+    }
+    setIsScanning(true);
+    try {
+      const imageParts = await Promise.all(selectedFiles.map(file => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve({ inlineData: { data: reader.result.split(',')[1], mimeType: file.type || 'image/jpeg' } });
+        reader.readAsDataURL(file);
+      })));
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: "Extract JSON: pfrNumber, amount (number), merchant (string), date (YYYY-MM-DD), category ('Food','Utilities','Transport','Housing','Entertainment','Health','Other'), title (string), items (array of { name, quantity, price })" }, ...imageParts] }], generationConfig: { responseMimeType: "application/json" } })
+      });
+      const data = await res.json();
+      const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+
+      onAddTransaction({
+        id: 'tx-' + Date.now(),
+        title: parsed.title || 'Scanned Receipt',
+        amount: Number(parsed.amount) || 0,
+        type: 'Expense',
+        category: parsed.category || 'Food',
+        merchant: parsed.merchant || 'Store',
+        date: parsed.date || new Date().toISOString().split('T')[0],
+        items: parsed.items || []
+      });
+      setSelectedFiles([]);
+    } catch (err) { alert('OCR Error: ' + err.message); } finally { setIsScanning(false); }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-1 space-y-6">
+        <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
+          <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className={`w-4 h-4 ${theme.textAccent}`} /> Multi-Part Receipt OCR Scanner</h3>
+          <p className="text-xs opacity-60">Snap or upload receipt photos. AI extracts totals, merchant, and items.</p>
+          <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={(e) => setSelectedFiles(Array.from(e.target.files))} className="hidden" />
+          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 p-6 rounded-xl text-center cursor-pointer hover:border-slate-700">
+            <Camera className={`w-8 h-8 mx-auto mb-2 ${theme.textAccent}`} />
+            <p className="text-xs font-semibold">{selectedFiles.length > 0 ? `${selectedFiles.length} photos selected` : 'Take or Upload Receipt Photos'}</p>
+          </div>
+          {selectedFiles.length > 0 && <button onClick={handleReceiptScan} disabled={isScanning} className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>{isScanning ? 'Scanning...' : 'Process Photos'}</button>}
+        </div>
+
+        <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
+          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Manual Transaction Entry</h3>
+          <form onSubmit={handleManualSubmit} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Transaction Type</label>
+              <div className="grid grid-cols-2 gap-2 mt-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button type="button" onClick={() => setFormData({ ...formData, type: 'Expense' })} className={`py-1.5 rounded-lg text-xs font-bold transition-all ${formData.type === 'Expense' ? 'bg-rose-500 text-white' : 'opacity-60'}`}>Expense (-)</button>
+                <button type="button" onClick={() => setFormData({ ...formData, type: 'Income' })} className={`py-1.5 rounded-lg text-xs font-bold transition-all ${formData.type === 'Income' ? 'bg-emerald-500 text-slate-950' : 'opacity-60'}`}>Income (+)</button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Amount</label>
+              <input type="number" placeholder="e.g. 4500" required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none" />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Title / Description</label>
+              <input type="text" placeholder="e.g. Supermarket Purchase" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
+                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs focus:outline-none">
+                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">Date</label>
+                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Merchant / Client</label>
+              <input type="text" placeholder="e.g. Target, Shell" value={formData.merchant} onChange={(e) => setFormData({ ...formData, merchant: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none" />
+            </div>
+
+            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Add Transaction</button>
+          </form>
+        </div>
+      </div>
+
+      <div className={`lg:col-span-2 ${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-bold">Transaction History Log</h3>
+          <span className="text-xs opacity-60">Total entries: {transactions.length}</span>
+        </div>
+        <div className="divide-y divide-slate-800 max-h-[620px] overflow-y-auto pr-1 space-y-2">
+          {transactions.length === 0 ? (
+            <p className="text-xs opacity-50 text-center py-12 border border-dashed border-slate-800 rounded-xl">No transactions recorded yet.</p>
+          ) : (
+            transactions.map(t => {
+              const cat = CATEGORIES.find(c => c.id === t.category) || CATEGORIES[7];
+              return (
+                <div key={t.id} className="pt-3 pb-2 flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl p-2 rounded-xl bg-slate-950 border border-slate-800">{cat.icon}</span>
+                    <div>
+                      <p className="font-bold">{t.title}</p>
+                      <p className="opacity-50">{t.merchant} • {formatDate(t.date)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-mono font-bold ${t.type === 'Income' ? 'text-emerald-400' : 'text-slate-200'}`}>{t.type === 'Income' ? '+' : '-'}{formatCurrency(t.amount)}</span>
+                    <button onClick={() => onDeleteTransaction(t.id)} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroceryTrackerView({ theme, transactions, formatCurrency }) {
+  const [search, setSearch] = useState('');
+  const items = useMemo(() => {
+    const itemMap = {};
+    transactions.forEach(t => {
+      if (t.items && Array.isArray(t.items)) {
+        t.items.forEach(i => {
+          const name = i.name || i.item || (typeof i === 'string' ? i : 'Item');
+          const qty = Number(i.quantity || i.qty || 1);
+          const price = Number(i.price || i.estimatedPrice || 0);
+
+          const k = name.toLowerCase().trim();
+          if (!itemMap[k]) itemMap[k] = { name: name, qty: 0, spent: 0 };
+          itemMap[k].qty += qty;
+          itemMap[k].spent += price * qty;
+        });
+      }
+    });
+    return Object.values(itemMap).filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  }, [transactions, search]);
+
+  return (
+    <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
+      <div className="flex justify-between items-center flex-wrap gap-3">
+        <h3 className="text-sm font-bold flex items-center gap-2"><Activity className={`w-4 h-4 ${theme.textAccent}`} /> Item Tracker & Usage</h3>
+        <div className="relative">
+          <input type="text" placeholder="Search item..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 pl-8 text-xs focus:outline-none" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 opacity-50" />
+        </div>
+      </div>
+      {items.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-slate-800 rounded-xl text-xs opacity-50">No scanned items tracked yet. Process receipt images or log items to view statistics.</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {items.map((i, idx) => (
+            <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center">
+              <div><p className="font-bold text-xs">{i.name}</p></div>
+              <div className="text-right"><p className={`font-mono font-bold text-xs ${theme.textAccent}`}>{i.qty} pcs</p><p className="text-[10px] opacity-50">{formatCurrency(i.spent)}</p></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnalyticsView({ theme, transactions, formatCurrency }) {
+  const categoryTotals = useMemo(() => {
+    const totals = {};
+    CATEGORIES.forEach(c => { totals[c.id] = 0; });
+    transactions.forEach(t => {
+      if (t.type === 'Expense') totals[t.category] = (totals[t.category] || 0) + Number(t.amount);
+    });
+    return totals;
+  }, [transactions]);
+
+  const totalExpense = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+
+  return (
+    <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-2xl space-y-6`}>
+      <div>
+        <h3 className="text-base font-bold flex items-center gap-2">
+          <PieChart className={`w-5 h-5 ${theme.textAccent}`} /> Reports & Category Expenses
+        </h3>
+        <p className="text-xs opacity-60 mt-0.5">Distribution of actual recorded expenses across categories.</p>
+      </div>
+
+      {totalExpense === 0 ? (
+        <div className="text-center py-12 text-xs opacity-50 border border-dashed border-slate-800 rounded-xl">
+          No recorded expenses to display in reports.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {CATEGORIES.map(cat => {
+            const amount = categoryTotals[cat.id] || 0;
+            const percentage = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
+
+            return (
+              <div key={cat.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-200 flex items-center gap-2">
+                    <span>{cat.icon}</span> {cat.label}
+                  </span>
+                  <span className="font-extrabold text-white">{formatCurrency(amount)}</span>
+                </div>
+
+                <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${theme.btnPrimary.split(' ')[0]}`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+
+                <div className="text-[10px] opacity-50 text-right font-semibold">
+                  {percentage}% of total expenses
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsView({ theme, currentTheme, setCurrentTheme, currentBg, setCurrentBg, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, household, onOpenPartnerModal, pushEnabled, onRequestPush, onPopFunFact, userProfile, onOpenAuthModal }) {
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <UserCircle className={`w-5 h-5 ${theme.textAccent}`} />
+            <h3 className="text-base font-bold">Account & App Nickname</h3>
+          </div>
+          <button onClick={onOpenAuthModal} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${theme.btnPrimary}`}>
+            {userProfile.loggedIn ? 'Manage Account' : 'Sign In / Register'}
+          </button>
+        </div>
+        <p className="text-xs opacity-60">
+          {userProfile.loggedIn
+            ? `Logged in as ${userProfile.email}. Your app nickname is "${userProfile.nickname || 'Guest'}".`
+            : 'Sign in or register with email & password to customize your app nickname for notifications and partner sync.'}
+        </p>
+      </div>
+
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <div className="flex justify-between items-center">
+          <h3 className="text-base font-bold flex items-center gap-2"><Bell className={`w-5 h-5 ${theme.textAccent}`} /> Web Push Alerts & Fun Facts</h3>
+          <button onClick={onRequestPush} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${pushEnabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : theme.btnPrimary}`}>
+            {pushEnabled ? '✓ Push Active' : 'Enable Web Push'}
+          </button>
+        </div>
+        <p className="text-xs opacity-60">
+          Receive 3-day bill warnings, low-balance cashflow alerts, partner receipt notifications (using your nickname), and random financial fun facts every 3 days.
+        </p>
+        <button onClick={onPopFunFact} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+          <Smile className="w-4 h-4" /> Trigger Random Fun Fact Right Now
+        </button>
+      </div>
+
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <div className="flex justify-between items-center">
+          <h3 className="text-base font-bold flex items-center gap-2"><HeartHandshake className={`w-5 h-5 ${theme.textAccent}`} /> Shared Vault & Partner Account</h3>
+          <button onClick={onOpenPartnerModal} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${theme.btnPrimary}`}>
+            {household.isConnected ? 'Manage Vault' : 'Add Person'}
+          </button>
+        </div>
+        <p className="text-xs opacity-60">
+          {household.isConnected ? `Connected with partner (${household.partnerName || household.partnerEmail}). Data is synchronized across both devices.` : 'Currently using a standalone personal vault. Connect a partner to share live cashflow, wishlists, and grocery lists.'}
+        </p>
+      </div>
+
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <h3 className="text-base font-bold flex items-center gap-2"><Globe className={`w-5 h-5 ${theme.textAccent}`} /> Default Currency (ISO Standard)</h3>
+        <select value={selectedCurrency} onChange={(e) => setSelectedCurrency(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none">
+          {WORLD_CURRENCIES.map(c => (
+            <option key={c.code} value={c.code}>{c.code} - {c.name} ({c.symbol})</option>
+          ))}
+        </select>
+      </div>
+
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <h3 className="text-base font-bold flex items-center gap-2"><Palette className={`w-5 h-5 ${theme.textAccent}`} /> Accent Highlight Color</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Object.keys(THEMES).map(tKey => (
+            <button key={tKey} onClick={() => setCurrentTheme(tKey)} className={`p-3 rounded-xl border text-xs font-bold transition-all ${currentTheme === tKey ? `${THEMES[tKey].btnPrimary} border-white shadow-lg` : 'bg-slate-950 border-slate-800 opacity-70 hover:opacity-100'}`}>{THEMES[tKey].name}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <h3 className="text-base font-bold flex items-center gap-2"><Sparkles className={`w-5 h-5 ${theme.textAccent}`} /> Background Gradient & Lighting</h3>
+        <p className="text-xs opacity-60">Choose your preferred background atmosphere with smooth top-to-bottom fading effects.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Object.keys(BACKGROUND_LIGHTING).map(bgKey => (
+            <button
+              key={bgKey}
+              onClick={() => setCurrentBg(bgKey)}
+              className={`p-3.5 rounded-xl border text-xs font-bold text-left flex items-center justify-between transition-all ${
+                currentBg === bgKey
+                  ? `${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent} border-2`
+                  : 'bg-slate-950 border-slate-800 opacity-70 hover:opacity-100'
+              }`}
+            >
+              <span>{BACKGROUND_LIGHTING[bgKey].name}</span>
+              {currentBg === bgKey && <Check className="w-4 h-4" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
+        <h3 className="text-base font-bold flex items-center gap-2"><DollarSign className={`w-5 h-5 ${theme.textAccent}`} /> Starting Balance</h3>
+        <input type="number" value={startingBalance} onChange={(e) => setStartingBalance(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none" />
+      </div>
+
+      <div className="text-right pt-2">
+        <button onClick={() => setShowAdminModal(true)} className="text-[11px] text-slate-600 hover:text-slate-400 font-mono">🔒 Admin API Config</button>
+      </div>
+    </div>
+  );
+}
+
 function PlanModal({ theme, plan, onSave, onClose }) {
   const [formData, setFormData] = useState(plan || { title: '', amount: '', type: 'Expense', category: 'Utilities', frequency: 'Monthly', dayOfMonth: 15, isActive: true });
-  const handleSubmit = (e) => { e.preventDefault(); if (!formData.title || !formData.amount) return; onSave({ ...formData, amount: Number(formData.amount), dayOfMonth: Number(formData.dayOfMonth) }); };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.amount) return;
+    onSave({ ...formData, amount: Number(formData.amount), dayOfMonth: Number(formData.dayOfMonth) });
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl`}>
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 space-y-4`}>
         <div className="flex justify-between items-center"><h3 className="text-sm font-bold">{plan ? 'Edit Cashflow Rule' : 'New Cashflow Rule'}</h3><button onClick={onClose}><X className="w-4 h-4" /></button></div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -649,42 +1372,24 @@ function PlanModal({ theme, plan, onSave, onClose }) {
               <button type="button" onClick={() => setFormData({ ...formData, type: 'Income' })} className={`py-1.5 rounded-lg text-xs font-bold transition-all ${formData.type === 'Income' ? 'bg-emerald-500 text-slate-950' : 'opacity-60'}`}>Income (+)</button>
             </div>
           </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Title</label>
-            <input type="text" placeholder="Title (e.g. Monthly Rent, Salary)" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold opacity-60 uppercase">Amount</label>
-            <input type="number" placeholder="Amount" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-          </div>
+
+          <input type="text" placeholder="Title (e.g. Monthly Rent, Salary)" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+          <input type="number" placeholder="Amount" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
+
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Frequency</label>
-              <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
-                <option value="Monthly">Monthly</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Once">Once</option>
-              </select>
-            </div>
+            <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none">
+              <option value="Monthly">Monthly</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Once">Once</option>
+            </select>
             {formData.frequency === 'Monthly' && (
-              <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Day of Month</label>
-                <input type="number" min="1" max="31" placeholder="Day (1-31)" value={formData.dayOfMonth} onChange={e => setFormData({ ...formData, dayOfMonth: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
-              </div>
+              <input type="number" min="1" max="31" placeholder="Day of month (1-31)" value={formData.dayOfMonth} onChange={e => setFormData({ ...formData, dayOfMonth: e.target.value })} className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs focus:outline-none" />
             )}
           </div>
-          <button type="submit" className={`w-full py-3 mt-2 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Plan</button>
+
+          <button type="submit" className={`w-full py-2.5 rounded-xl font-bold text-xs ${theme.btnPrimary}`}>Save Rule</button>
         </form>
       </div>
     </div>
   );
 }
-
-// Ensure the stub components return null or generic views if they are removed for space context.
-// In your complete file, include ShoppingListsView, DailyEntryView, GroceryTrackerView, AnalyticsView, SettingsView, and WishlistView from your OG code here.
-function WishlistView() { return null; }
-function ShoppingListsView() { return null; }
-function DailyEntryView() { return null; }
-function GroceryTrackerView() { return null; }
-function AnalyticsView() { return null; }
-function SettingsView() { return null; }
