@@ -986,17 +986,6 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
 }
 
 function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) {
-  const [partnerInput, setPartnerInput] = useState('');
-  const [partnerName, setPartnerName] = useState(household.partnerName || '');
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyCode = () => {
-    navigator.clipboard?.writeText(household.householdId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) {
   const [activeTab, setActiveTab] = useState('code'); // 'code' or 'qr'
   const [partnerInput, setPartnerInput] = useState('');
   const [partnerName, setPartnerName] = useState(household.partnerName || '');
