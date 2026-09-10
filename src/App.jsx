@@ -57,7 +57,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://yrendrnoivykevvbjjmo.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_1HRHJRf9C02rRcty0x7XKq_8cabs...';
+const SUPABASE_ANON_KEY = 'sb_publishable_1HRHJRf9C02rRctyo07xkQ_8cabsSkw';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -310,6 +310,34 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
   useEffect(() => { localStorage.setItem('sb_push_enabled', pushEnabled ? 'true' : 'false'); }, [pushEnabled]);
   useEffect(() => { localStorage.setItem('sb_notifications_list', JSON.stringify(notifications)); }, [notifications]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserProfile({
+          loggedIn: true,
+          email: session.user.email,
+          nickname: session.user.user_metadata?.nickname || session.user.email.split('@')[0],
+          userId: session.user.id
+        });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserProfile({
+          loggedIn: true,
+          email: session.user.email,
+          nickname: session.user.user_metadata?.nickname || session.user.email.split('@')[0],
+          userId: session.user.id
+        });
+      } else {
+        setUserProfile({ loggedIn: false, email: '', nickname: '', userId: '' });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const pushNotification = (title, body, type = 'info') => {
     const greetingName = userProfile.nickname ? `, ${userProfile.nickname}` : '';
