@@ -10,8 +10,11 @@ import {
   Trash2,
   Edit3,
   AlertTriangle,
+  RefreshCw,
   Settings,
   Sparkles,
+  Clock,
+  Layers,
   Check,
   X,
   ShoppingBag,
@@ -32,18 +35,21 @@ import {
   CheckCircle2,
   Menu,
   UserPlus,
+  Users,
   Copy,
   HeartHandshake,
+  Share2,
   UserCheck,
   Bell,
   BellRing,
   Smile,
+  Info,
+  User,
   LogOut,
   LogIn,
   KeyRound,
   AtSign,
-  UserCircle,
-  CalendarDays
+  UserCircle
 } from 'lucide-react';
 
 const WORLD_CURRENCIES = [
@@ -83,29 +89,117 @@ const CATEGORIES = [
 ];
 
 const FINANCIAL_FUN_FACTS = [
-  "💡 Fun Fact: The word 'bankrupt' comes from the Italian 'banca rotta', meaning 'broken bench' — because when a Renaissance banker ran out of money, authorities literally smashed his bench![cite: 1]",
-  "💡 Fun Fact: Monopoly prints more money every year than the US Bureau of Engraving and Printing does for real currency![cite: 1]",
-  "💡 Fun Fact: Pigs were chosen as piggy banks because 'pygg' was an old English word for a cheap orange clay used to make jars. Potteries started shaping them like actual pigs![cite: 1]",
-  "💡 Fun Fact: In 1913, the entire US Income Tax form was just a single page long![cite: 1]",
-  "💡 Fun Fact: The credit card was invented in 1949 because Frank McNamara forgot his wallet while dining at a restaurant in New York City![cite: 1]"
+  "💡 Fun Fact: The word 'bankrupt' comes from the Italian 'banca rotta', meaning 'broken bench' — because when a Renaissance banker ran out of money, authorities literally smashed his bench!",
+  "💡 Fun Fact: Monopoly prints more money every year than the US Bureau of Engraving and Printing does for real currency!",
+  "💡 Fun Fact: Pigs were chosen as piggy banks because 'pygg' was an old English word for a cheap orange clay used to make jars. Potteries started shaping them like actual pigs!",
+  "💡 Fun Fact: In 1913, the entire US Income Tax form was just a single page long!",
+  "💡 Fun Fact: The credit card was invented in 1949 because Frank McNamara forgot his wallet while dining at a restaurant in New York City!",
+  "💡 Fun Fact: Isaac Newton lost today's equivalent of over $4 million in the South Sea Bubble stock crash and remarked: 'I can calculate the motion of heavenly bodies, but not the madness of people.'",
+  "💡 Fun Fact: The paper used for US currency isn't paper at all — it's a blend of 75% cotton and 25% linen!",
+  "💡 Fun Fact: Apple makes enough money every 8 minutes to buy a brand new Ferrari!"
 ];
 
 const THEMES = {
-  'electric-blue': { name: 'Electric Blue', btnPrimary: 'bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold', textAccent: 'text-blue-400', borderAccent: 'border-blue-500/40', bgAccent: 'bg-blue-500/10', chartColor: '#3b82f6', bgGlow: 'from-blue-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
-  'emerald-green': { name: 'Emerald Green', btnPrimary: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold', textAccent: 'text-emerald-400', borderAccent: 'border-emerald-500/40', bgAccent: 'bg-emerald-500/10', chartColor: '#10b981', bgGlow: 'from-emerald-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
-  'ruby-red': { name: 'Ruby Red', btnPrimary: 'bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold', textAccent: 'text-rose-400', borderAccent: 'border-rose-500/40', bgAccent: 'bg-rose-500/10', chartColor: '#f43f5e', bgGlow: 'from-rose-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
-  'sky-blue': { name: 'Sky Blue', btnPrimary: 'bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold', textAccent: 'text-sky-400', borderAccent: 'border-sky-400/40', bgAccent: 'bg-sky-400/10', chartColor: '#38bdf8', bgGlow: 'from-sky-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
-  'amber-gold': { name: 'Amber Gold', btnPrimary: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold', textAccent: 'text-amber-400', borderAccent: 'border-amber-400/40', bgAccent: 'bg-amber-400/10', chartColor: '#fbbf24', bgGlow: 'from-amber-950/40', cardBg: 'bg-slate-900/80', cardBorder: 'border-slate-800/80' },
-  'pure-black': { name: 'Pure Onyx', btnPrimary: 'bg-slate-100 hover:bg-white text-slate-950 font-bold', textAccent: 'text-slate-100', borderAccent: 'border-slate-700', bgAccent: 'bg-slate-800/60', chartColor: '#f8fafc', bgGlow: 'from-slate-900', cardBg: 'bg-black/90', cardBorder: 'border-slate-800' },
-  'light-mode': { name: 'Light Clean', btnPrimary: 'bg-slate-900 hover:bg-slate-800 text-white font-bold', textAccent: 'text-slate-900', borderAccent: 'border-slate-300', bgAccent: 'bg-slate-200/80', chartColor: '#0f172a', bgGlow: 'from-slate-200', cardBg: 'bg-white/90', cardBorder: 'border-slate-200' }
+  'electric-blue': {
+    name: 'Electric Blue',
+    btnPrimary: 'bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold',
+    textAccent: 'text-blue-400',
+    borderAccent: 'border-blue-500/40',
+    bgAccent: 'bg-blue-500/10',
+    chartColor: '#3b82f6',
+    bgGlow: 'from-blue-950/40',
+    cardBg: 'bg-slate-900/80',
+    cardBorder: 'border-slate-800/80'
+  },
+  'emerald-green': {
+    name: 'Emerald Green',
+    btnPrimary: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold',
+    textAccent: 'text-emerald-400',
+    borderAccent: 'border-emerald-500/40',
+    bgAccent: 'bg-emerald-500/10',
+    chartColor: '#10b981',
+    bgGlow: 'from-emerald-950/40',
+    cardBg: 'bg-slate-900/80',
+    cardBorder: 'border-slate-800/80'
+  },
+  'ruby-red': {
+    name: 'Ruby Red',
+    btnPrimary: 'bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold',
+    textAccent: 'text-rose-400',
+    borderAccent: 'border-rose-500/40',
+    bgAccent: 'bg-rose-500/10',
+    chartColor: '#f43f5e',
+    bgGlow: 'from-rose-950/40',
+    cardBg: 'bg-slate-900/80',
+    cardBorder: 'border-slate-800/80'
+  },
+  'sky-blue': {
+    name: 'Sky Blue',
+    btnPrimary: 'bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold',
+    textAccent: 'text-sky-400',
+    borderAccent: 'border-sky-400/40',
+    bgAccent: 'bg-sky-400/10',
+    chartColor: '#38bdf8',
+    bgGlow: 'from-sky-950/40',
+    cardBg: 'bg-slate-900/80',
+    cardBorder: 'border-slate-800/80'
+  },
+  'amber-gold': {
+    name: 'Amber Gold',
+    btnPrimary: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold',
+    textAccent: 'text-amber-400',
+    borderAccent: 'border-amber-400/40',
+    bgAccent: 'bg-amber-400/10',
+    chartColor: '#fbbf24',
+    bgGlow: 'from-amber-950/40',
+    cardBg: 'bg-slate-900/80',
+    cardBorder: 'border-slate-800/80'
+  },
+  'pure-black': {
+    name: 'Pure Onyx',
+    btnPrimary: 'bg-slate-100 hover:bg-white text-slate-950 font-bold',
+    textAccent: 'text-slate-100',
+    borderAccent: 'border-slate-700',
+    bgAccent: 'bg-slate-800/60',
+    chartColor: '#f8fafc',
+    bgGlow: 'from-slate-900',
+    cardBg: 'bg-black/90',
+    cardBorder: 'border-slate-800'
+  },
+  'light-mode': {
+    name: 'Light Clean',
+    btnPrimary: 'bg-slate-900 hover:bg-slate-800 text-white font-bold',
+    textAccent: 'text-slate-900',
+    borderAccent: 'border-slate-300',
+    bgAccent: 'bg-slate-200/80',
+    chartColor: '#0f172a',
+    bgGlow: 'from-slate-200',
+    cardBg: 'bg-white/90',
+    cardBorder: 'border-slate-200'
+  }
 };
 
 const BACKGROUND_LIGHTING = {
-  'smooth-blue-fade': { name: 'Smooth Midnight Blue Fade', bgClass: 'bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950' },
-  'deep-ocean-fade': { name: 'Deep Ocean Blue Fade', bgClass: 'bg-gradient-to-b from-blue-950/90 via-slate-950 to-slate-950' },
-  'emerald-aura-fade': { name: 'Emerald Aura Fade', bgClass: 'bg-gradient-to-b from-emerald-950/80 via-slate-950 to-slate-950' },
-  'onyx-dark': { name: 'Onyx Dark Solid', bgClass: 'bg-slate-950' },
-  'light-clean': { name: 'Light Ambient', bgClass: 'bg-gradient-to-b from-slate-100 to-slate-200' }
+  'smooth-blue-fade': {
+    name: 'Smooth Midnight Blue Fade',
+    bgClass: 'bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950'
+  },
+  'deep-ocean-fade': {
+    name: 'Deep Ocean Blue Fade',
+    bgClass: 'bg-gradient-to-b from-blue-950/90 via-slate-950 to-slate-950'
+  },
+  'emerald-aura-fade': {
+    name: 'Emerald Aura Fade',
+    bgClass: 'bg-gradient-to-b from-emerald-950/80 via-slate-950 to-slate-950'
+  },
+  'onyx-dark': {
+    name: 'Onyx Dark Solid',
+    bgClass: 'bg-slate-950'
+  },
+  'light-clean': {
+    name: 'Light Ambient',
+    bgClass: 'bg-gradient-to-b from-slate-100 to-slate-200'
+  }
 };
 
 const formatDate = (dateStr) => {
@@ -118,19 +212,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('cashflow');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
-  const [usersDb, setUsersDb] = useState(() => {
-    const saved = localStorage.getItem('sb_users_db');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  // User Profile State (Email + Password + Nickname)
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('sb_user_profile');
     return saved ? JSON.parse(saved) : { loggedIn: false, email: '', nickname: '', userId: '' };
   });
-
-  const [showAuthModal, setShowAuthModal] = useState(!userProfile.loggedIn);
 
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fb_theme') || 'electric-blue');
   const theme = THEMES[currentTheme] || THEMES['electric-blue'];
@@ -145,28 +234,60 @@ export default function App() {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
   };
 
-  const [startingBalance, setStartingBalance] = useState(() => Number(localStorage.getItem('sb_starting_balance')) || 0);
-  const [transactions, setTransactions] = useState(() => JSON.parse(localStorage.getItem('sb_transactions') || '[]'));
-  const [cashflowPlans, setCashflowPlans] = useState(() => JSON.parse(localStorage.getItem('sb_cashflow_plans') || '[]'));
-  const [shoppingLists, setShoppingLists] = useState(() => JSON.parse(localStorage.getItem('sb_shopping_lists') || '[]'));
-  const [wishlistItems, setWishlistItems] = useState(() => JSON.parse(localStorage.getItem('sb_wishlist_items') || '[]'));
+  const [startingBalance, setStartingBalance] = useState(() => {
+    const saved = localStorage.getItem('sb_starting_balance');
+    return saved !== null ? Number(saved) : 0;
+  });
+
+  const [transactions, setTransactions] = useState(() => {
+    const saved = localStorage.getItem('sb_transactions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [cashflowPlans, setCashflowPlans] = useState(() => {
+    const saved = localStorage.getItem('sb_cashflow_plans');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [shoppingLists, setShoppingLists] = useState(() => {
+    const saved = localStorage.getItem('sb_shopping_lists');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [wishlistItems, setWishlistItems] = useState(() => {
+    const saved = localStorage.getItem('sb_wishlist_items');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [household, setHousehold] = useState(() => {
     const saved = localStorage.getItem('sb_household');
     if (saved) return JSON.parse(saved);
-    return { householdId: 'SB-' + Math.random().toString(36).substring(2, 7).toUpperCase(), partnerName: '', partnerEmail: '', isConnected: false };
+    const randomCode = 'SB-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+    return { householdId: randomCode, partnerName: '', partnerEmail: '', isConnected: false };
   });
 
-  const [pushEnabled, setPushEnabled] = useState(() => localStorage.getItem('sb_push_enabled') === 'true');
-  const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('sb_notifications_list') || '[]'));
+  const [pushEnabled, setPushEnabled] = useState(() => {
+    return localStorage.getItem('sb_push_enabled') === 'true';
+  });
+
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('sb_notifications_list');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', title: 'Welcome to Stashly!', body: 'Notifications activated for bill alerts and cashflow warnings.', date: 'Just now', type: 'info', unread: true }
+    ];
+  });
+
   const [currentFunFactBanner, setCurrentFunFactBanner] = useState(null);
   const [projectionDays, setProjectionDays] = useState(45);
-  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('sb_gemini_key') || '');
+  
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return localStorage.getItem('sb_gemini_key') || '';
+  });
+
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
 
-  useEffect(() => { localStorage.setItem('sb_users_db', JSON.stringify(usersDb)); }, [usersDb]);
   useEffect(() => { localStorage.setItem('sb_user_profile', JSON.stringify(userProfile)); }, [userProfile]);
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
   useEffect(() => { localStorage.setItem('fb_bg_style', currentBg); }, [currentBg]);
@@ -186,6 +307,14 @@ export default function App() {
     const personalizedTitle = title.includes(userProfile.nickname) ? title : `${title}${greetingName}`;
     const newNotif = { id: 'notif-' + Date.now(), title: personalizedTitle, body, date: 'Just now', type, unread: true };
     setNotifications(prev => [newNotif, ...prev]);
+
+    if (pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(personalizedTitle, { body, icon: '/favicon.ico' });
+      } catch (err) {
+        console.error('Push delivery error:', err);
+      }
+    }
   };
 
   const showRandomFunFact = () => {
@@ -194,11 +323,41 @@ export default function App() {
     pushNotification('💡 Financial Fun Fact!', randomFact, 'fact');
   };
 
+  useEffect(() => {
+    const lastFactTime = localStorage.getItem('sb_last_fact_time');
+    const now = Date.now();
+    const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+
+    if (!lastFactTime || (now - Number(lastFactTime)) >= threeDaysMs) {
+      const timer = setTimeout(() => {
+        showRandomFunFact();
+        localStorage.setItem('sb_last_fact_time', now.toString());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const requestBrowserPushPermission = async () => {
+    if ('Notification' in window) {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        setPushEnabled(true);
+        const nameGreeting = userProfile.nickname ? ` ${userProfile.nickname}` : '';
+        pushNotification(`Web Push Activated!`, `Hey${nameGreeting}, you will now receive bill alerts, low-balance warnings, and partner updates on your device.`);
+      } else {
+        alert('Notification permission was blocked or dismissed. Please enable notifications in your browser settings.');
+      }
+    } else {
+      alert('Your current browser does not support native Web Push Notifications.');
+    }
+  };
+
   const { dailyProjections, safeToSpendToday, lowestProjectedBalance } = useMemo(() => {
     const projections = [];
     let currentBalance = Number(startingBalance);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
     let lowestBal = currentBalance;
     let totalExpensesBeforeNextIncome = 0;
     let foundNextIncome = false;
@@ -239,33 +398,60 @@ export default function App() {
       const dayEndingBalance = dayStartingBalance + netChange;
 
       if (dayEndingBalance < lowestBal) lowestBal = dayEndingBalance;
+
       if (!foundNextIncome) {
         if (plannedIncomes > 0 && i > 0) foundNextIncome = true;
         else totalExpensesBeforeNextIncome += plannedExpenses;
       }
 
       projections.push({
-        date: dateStr, displayDate: targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: dateStr,
+        displayDate: targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         dayName: targetDate.toLocaleDateString('en-US', { weekday: 'short' }),
-        startingBalance: dayStartingBalance, plannedIncomes, plannedExpenses,
-        actualIncomes, actualExpenses, endingBalance: dayEndingBalance,
-        isToday: i === 0, isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-        hasNetExpense: plannedExpenses > 0 || actualExpenses > 0, hasNetIncome: plannedIncomes > 0 || actualIncomes > 0
+        startingBalance: dayStartingBalance,
+        plannedIncomes,
+        plannedExpenses,
+        actualIncomes,
+        actualExpenses,
+        endingBalance: dayEndingBalance,
+        isToday: i === 0,
+        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        hasNetExpense: plannedExpenses > 0 || actualExpenses > 0,
+        hasNetIncome: plannedIncomes > 0 || actualIncomes > 0
       });
 
       currentBalance = dayEndingBalance;
     }
 
-    const safeBuffer = Math.max(0, Number(startingBalance) - totalExpensesBeforeNextIncome);
-    return { dailyProjections: projections, safeToSpendToday: Math.round(safeBuffer * 0.85), lowestProjectedBalance: lowestBal };
+    const currentActualBalance = Number(startingBalance);
+    const safeBuffer = Math.max(0, currentActualBalance - totalExpensesBeforeNextIncome);
+    const safeToSpend = Math.round(safeBuffer * 0.85);
+
+    return {
+      dailyProjections: projections,
+      safeToSpendToday: safeToSpend,
+      lowestProjectedBalance: lowestBal
+    };
   }, [startingBalance, transactions, cashflowPlans, projectionDays]);
 
   const handleAddTransaction = (newTx) => {
     setTransactions(prev => [newTx, ...prev]);
     if (newTx.date === new Date().toISOString().split('T')[0]) {
-      setStartingBalance(prev => newTx.type === 'Income' ? Number(prev) + Number(newTx.amount) : Number(prev) - Number(newTx.amount));
+      if (newTx.type === 'Income') setStartingBalance(prev => Number(prev) + Number(newTx.amount));
+      else setStartingBalance(prev => Number(prev) - Number(newTx.amount));
+    }
+
+    if (household.isConnected) {
+      const senderName = userProfile.nickname || 'You';
+      pushNotification(
+        `🛒 Partner Receipt Alert!`,
+        `${senderName} logged a transaction: ${newTx.title} (${formatCurrency(newTx.amount)})`,
+        'partner'
+      );
     }
   };
+
+  const handleDeleteTransaction = (id) => setTransactions(prev => prev.filter(t => t.id !== id));
 
   const handleSavePlan = (planData) => {
     if (editingPlan) {
@@ -275,6 +461,14 @@ export default function App() {
     }
     setIsPlanModalOpen(false);
     setEditingPlan(null);
+  };
+
+  const handleDeletePlan = (id) => setCashflowPlans(prev => prev.filter(p => p.id !== id));
+
+  const unreadCount = notifications.filter(n => n.unread).length;
+
+  const markAllNotificationsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
   };
 
   const navItems = [
@@ -287,65 +481,132 @@ export default function App() {
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
+  const currentTabObj = navItems.find(n => n.id === activeTab) || navItems[0];
+
   return (
     <div className={`min-h-screen font-sans antialiased transition-colors duration-500 ${currentTheme === 'light-mode' ? 'bg-slate-100 text-slate-900' : `${bgStyle.bgClass} text-slate-100`}`}>
       
-      {(!userProfile.loggedIn || showAuthModal) && (
-        <AuthModal 
-          theme={theme} 
-          userProfile={userProfile} 
-          setUserProfile={setUserProfile}
-          usersDb={usersDb}
-          setUsersDb={setUsersDb}
-          onClose={() => setShowAuthModal(false)} 
-          pushNotification={pushNotification} 
-        />
-      )}
-
       {currentFunFactBanner && (
         <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 border-b border-indigo-500/30 px-4 py-2.5 text-xs font-semibold flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-2 max-w-5xl mx-auto"><Smile className="w-4 h-4 text-amber-400 shrink-0" /><span className="text-purple-100 leading-tight">{currentFunFactBanner}</span></div>
-          <button onClick={() => setCurrentFunFactBanner(null)} className="text-slate-400 hover:text-white p-1"><X className="w-4 h-4" /></button>
+          <div className="flex items-center gap-2 max-w-5xl mx-auto">
+            <Smile className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-purple-100 leading-tight">{currentFunFactBanner}</span>
+          </div>
+          <button onClick={() => setCurrentFunFactBanner(null)} className="text-slate-400 hover:text-white p-1">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
       <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-4 py-3.5 sm:px-6 ${currentTheme === 'light-mode' ? 'bg-white/90 border-slate-200' : 'bg-slate-900/80 border-slate-800/80'}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
           <div className="flex items-center gap-3">
             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 ${theme.btnPrimary}`}>
               <TrendingUp className="w-7 h-7 stroke-[2.5]" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">STASHLY.COM</h1>
-              <p className="text-[11px] opacity-60 font-semibold tracking-wide">{userProfile.loggedIn && userProfile.nickname ? `Welcome back, ${userProfile.nickname}!` : 'Smart Cashflow & Shared Vault'}</p>
+              <h1 className="text-2xl font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                STASHLY.COM
+              </h1>
+              <p className="text-[11px] opacity-60 font-semibold tracking-wide">
+                {userProfile.loggedIn && userProfile.nickname ? `Welcome back, ${userProfile.nickname}!` : 'Smart Cashflow & Shared Vault'}
+              </p>
             </div>
           </div>
+
           <div className="flex items-center gap-2.5">
             <div className={`hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold ${theme.textAccent} ${theme.borderAccent} ${theme.bgAccent}`}>
-              <ShieldCheck className="w-4 h-4" /><span>Safe: {formatCurrency(safeToSpendToday)}</span>
+              <ShieldCheck className="w-4 h-4" />
+              <span>Safe: {formatCurrency(safeToSpendToday)}</span>
             </div>
-            <button onClick={() => setShowAuthModal(true)} className={`p-2 sm:px-3 sm:py-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${userProfile.loggedIn ? 'bg-slate-900 border-slate-700 text-slate-100 hover:border-slate-500' : theme.btnPrimary}`}>
-              <UserCircle className="w-5 h-5" /><span className="hidden sm:inline">{userProfile.loggedIn ? userProfile.nickname || 'My Account' : 'Sign In / Register'}</span>
+
+            {/* User Account / Nickname Badge Button */}
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className={`p-2 sm:px-3 sm:py-2 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+                userProfile.loggedIn
+                  ? 'bg-slate-900 border-slate-700 text-slate-100 hover:border-slate-500'
+                  : `${theme.btnPrimary}`
+              }`}
+              title="Account & Nickname Settings"
+            >
+              <UserCircle className="w-5 h-5" />
+              <span className="hidden sm:inline">
+                {userProfile.loggedIn ? userProfile.nickname || 'My Account' : 'Sign In / Register'}
+              </span>
             </button>
-            <button onClick={() => { setShowNotificationCenter(!showNotificationCenter); setNotifications(prev => prev.map(n => ({ ...n, unread: false }))); }} className="relative p-2.5 rounded-xl border bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-800">
+
+            <button
+              onClick={() => { setShowNotificationCenter(!showNotificationCenter); markAllNotificationsRead(); }}
+              className="relative p-2.5 rounded-xl border bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-800 transition-all"
+              title="Alerts & Push Notifications"
+            >
               <Bell className="w-5 h-5" />
-              {notifications.filter(n => n.unread).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse">{notifications.filter(n => n.unread).length}</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </span>
               )}
             </button>
+
+            <button
+              onClick={() => setShowPartnerModal(true)}
+              className={`p-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all ${
+                household.isConnected
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/20 shadow-md'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-800'
+              }`}
+              title="Shared Household Vault"
+            >
+              {household.isConnected ? (
+                <>
+                  <UserCheck className="w-5 h-5 text-emerald-400" />
+                  <span className="hidden sm:inline">Partner Synced</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className={`w-5 h-5 ${theme.textAccent}`} />
+                  <span className="hidden sm:inline">Add Person</span>
+                </>
+              )}
+            </button>
+
             <div className="relative">
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border font-bold text-xs transition-all ${theme.btnPrimary}`}>
-                <Menu className="w-5 h-5" /><span className="hidden sm:inline">{(navItems.find(n => n.id === activeTab) || navItems[0]).label}</span>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border font-bold text-xs transition-all ${theme.btnPrimary}`}
+              >
+                <Menu className="w-5 h-5" />
+                <span className="hidden sm:inline">{currentTabObj.label}</span>
               </button>
+
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs" onClick={() => setIsMenuOpen(false)} />
                   <div className={`absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl border z-50 p-2 space-y-1 ${currentTheme === 'light-mode' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-                    {navItems.map(item => (
-                      <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeTab === item.id ? `${theme.btnPrimary} shadow-md` : 'hover:bg-slate-800/50 opacity-70 hover:opacity-100'}`}>
-                        <item.icon className="w-4 h-4" /><span>{item.label}</span>
-                      </button>
-                    ))}
+                    <div className="px-3 py-2 border-b border-slate-800/50 mb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Stashly Navigation</p>
+                    </div>
+                    {navItems.map(item => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setIsMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                            isActive ? `${theme.btnPrimary} shadow-md` : 'hover:bg-slate-800/50 opacity-70 hover:opacity-100'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -354,103 +615,261 @@ export default function App() {
         </div>
       </header>
 
+      {}
+      {showNotificationCenter && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start justify-end p-4 sm:p-6">
+          <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl mt-12`}>
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div className="flex items-center gap-2">
+                <BellRing className={`w-5 h-5 ${theme.textAccent}`} />
+                <h3 className="text-sm font-bold">Stashly Push Alert Engine</h3>
+              </div>
+              <button onClick={() => setShowNotificationCenter(false)} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs">
+              <span className="opacity-70 font-semibold">Web Push Permission:</span>
+              <button
+                onClick={requestBrowserPushPermission}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold ${pushEnabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : theme.btnPrimary}`}
+              >
+                {pushEnabled ? '✓ Push Enabled' : 'Enable Web Push'}
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {notifications.map(n => (
+                <div key={n.id} className="bg-slate-950 border border-slate-800/80 p-3 rounded-xl text-xs space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      {n.type === 'bill' && '⏰ Bill Due Alert'}
+                      {n.type === 'low' && '⚠️ Low Balance Warning'}
+                      {n.type === 'partner' && '🛒 Partner Activity'}
+                      {n.type === 'fact' && '💡 Financial Fun Fact'}
+                      {n.type === 'info' && '🔔 System Notice'}
+                    </span>
+                    <span className="text-[10px] opacity-50">{n.date}</span>
+                  </div>
+                  <p className="opacity-70 text-[11px]">{n.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/80 flex gap-2">
+              <button
+                onClick={() => pushNotification('⏰ 3-Day Bill Alert', `Hey ${userProfile.nickname || 'there'}, Electric Bill ($120) is due in 3 days.`, 'bill')}
+                className="flex-1 py-2 rounded-xl text-[10px] font-bold bg-slate-950 border border-slate-800 hover:border-amber-500/40 text-amber-400"
+              >
+                Test Bill Alert
+              </button>
+              <button
+                onClick={() => pushNotification('⚠️ Low Balance Warning', `Heads up ${userProfile.nickname || ''}! Projected balance drops below ${formatCurrency(100)} on June 18th.`, 'low')}
+                className="flex-1 py-2 rounded-xl text-[10px] font-bold bg-slate-950 border border-slate-800 hover:border-rose-500/40 text-rose-400"
+              >
+                Test Low Balance
+              </button>
+              <button
+                onClick={showRandomFunFact}
+                className={`flex-1 py-2 rounded-xl text-[10px] font-bold ${theme.btnPrimary}`}
+              >
+                Pop Fun Fact
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {activeTab === 'cashflow' && <CashflowView theme={theme} startingBalance={startingBalance} setStartingBalance={setStartingBalance} dailyProjections={dailyProjections} safeToSpendToday={safeToSpendToday} lowestProjectedBalance={lowestProjectedBalance} projectionDays={projectionDays} setProjectionDays={setProjectionDays} cashflowPlans={cashflowPlans} formatCurrency={formatCurrency} onOpenAddPlan={() => { setEditingPlan(null); setIsPlanModalOpen(true); }} onEditPlan={(plan) => { setEditingPlan(plan); setIsPlanModalOpen(true); }} onDeletePlan={(id) => setCashflowPlans(prev => prev.filter(p => p.id !== id))} />}
-        {activeTab === 'wishlist' && <WishlistView theme={theme} wishlistItems={wishlistItems} setWishlistItems={setWishlistItems} formatCurrency={formatCurrency} startingBalance={startingBalance} safeToSpendToday={safeToSpendToday} onAddPlan={(newPlan) => setCashflowPlans(prev => [...prev, newPlan])} onAddTransaction={handleAddTransaction} />}
-        {activeTab === 'lists' && <ShoppingListsView theme={theme} geminiApiKey={geminiApiKey} selectedCurrency={selectedCurrency} shoppingLists={shoppingLists} setShoppingLists={setShoppingLists} formatCurrency={formatCurrency} onAddTransaction={handleAddTransaction} />}
-        {activeTab === 'entry' && <DailyEntryView theme={theme} geminiApiKey={geminiApiKey} onAddTransaction={handleAddTransaction} transactions={transactions} formatCurrency={formatCurrency} onDeleteTransaction={(id) => setTransactions(prev => prev.filter(t => t.id !== id))} />}
-        {activeTab === 'groceries' && <GroceryTrackerView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />}
-        {activeTab === 'analytics' && <AnalyticsView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />}
-        {activeTab === 'settings' && <SettingsView theme={theme} currentTheme={currentTheme} setCurrentTheme={setCurrentTheme} currentBg={currentBg} setCurrentBg={setCurrentBg} selectedCurrency={selectedCurrency} setSelectedCurrency={setSelectedCurrency} startingBalance={startingBalance} setStartingBalance={setStartingBalance} setShowAdminModal={setShowAdminModal} household={household} onOpenPartnerModal={() => setShowPartnerModal(true)} pushEnabled={pushEnabled} onRequestPush={() => {}} onPopFunFact={showRandomFunFact} userProfile={userProfile} onOpenAuthModal={() => setShowAuthModal(true)} />}
+        {activeTab === 'cashflow' && (
+          <CashflowView
+            theme={theme}
+            startingBalance={startingBalance}
+            setStartingBalance={setStartingBalance}
+            dailyProjections={dailyProjections}
+            safeToSpendToday={safeToSpendToday}
+            lowestProjectedBalance={lowestProjectedBalance}
+            projectionDays={projectionDays}
+            setProjectionDays={setProjectionDays}
+            cashflowPlans={cashflowPlans}
+            formatCurrency={formatCurrency}
+            onOpenAddPlan={() => { setEditingPlan(null); setIsPlanModalOpen(true); }}
+            onEditPlan={(plan) => { setEditingPlan(plan); setIsPlanModalOpen(true); }}
+            onDeletePlan={handleDeletePlan}
+          />
+        )}
+
+        {activeTab === 'wishlist' && (
+          <WishlistView
+            theme={theme}
+            wishlistItems={wishlistItems}
+            setWishlistItems={setWishlistItems}
+            formatCurrency={formatCurrency}
+            startingBalance={startingBalance}
+            safeToSpendToday={safeToSpendToday}
+            onAddPlan={(newPlan) => setCashflowPlans(prev => [...prev, newPlan])}
+            onAddTransaction={handleAddTransaction}
+          />
+        )}
+
+        {activeTab === 'lists' && (
+          <ShoppingListsView
+            theme={theme}
+            geminiApiKey={geminiApiKey}
+            selectedCurrency={selectedCurrency}
+            shoppingLists={shoppingLists}
+            setShoppingLists={setShoppingLists}
+            formatCurrency={formatCurrency}
+            onAddTransaction={handleAddTransaction}
+          />
+        )}
+
+        {activeTab === 'entry' && (
+          <DailyEntryView
+            theme={theme}
+            geminiApiKey={geminiApiKey}
+            onAddTransaction={handleAddTransaction}
+            transactions={transactions}
+            formatCurrency={formatCurrency}
+            onDeleteTransaction={handleDeleteTransaction}
+          />
+        )}
+
+        {activeTab === 'groceries' && (
+          <GroceryTrackerView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />
+        )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsView
+            theme={theme}
+            currentTheme={currentTheme}
+            setCurrentTheme={setCurrentTheme}
+            currentBg={currentBg}
+            setCurrentBg={setCurrentBg}
+            selectedCurrency={selectedCurrency}
+            setSelectedCurrency={setSelectedCurrency}
+            startingBalance={startingBalance}
+            setStartingBalance={setStartingBalance}
+            setShowAdminModal={setShowAdminModal}
+            household={household}
+            onOpenPartnerModal={() => setShowPartnerModal(true)}
+            pushEnabled={pushEnabled}
+            onRequestPush={requestBrowserPushPermission}
+            onPopFunFact={showRandomFunFact}
+            userProfile={userProfile}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+          />
+        )}
       </main>
 
-      {isPlanModalOpen && <PlanModal theme={theme} plan={editingPlan} onSave={handleSavePlan} onClose={() => { setIsPlanModalOpen(false); setEditingPlan(null); }} />}
+      {}
+      {showAuthModal && (
+        <AuthModal
+          theme={theme}
+          userProfile={userProfile}
+          setUserProfile={setUserProfile}
+          onClose={() => setShowAuthModal(false)}
+          pushNotification={pushNotification}
+        />
+      )}
+
+      {showPartnerModal && (
+        <PartnerModal
+          theme={theme}
+          household={household}
+          setHousehold={setHousehold}
+          userProfile={userProfile}
+          onClose={() => setShowPartnerModal(false)}
+        />
+      )}
+
+      {showAdminModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 space-y-4`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Lock className={`w-4 h-4 ${theme.textAccent}`} /> Admin API Key Override</h3>
+              <button onClick={() => setShowAdminModal(false)} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-xs opacity-70">Enter master Gemini API key to override server configuration.</p>
+            <input
+              type="password"
+              placeholder="AIzaSy..."
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none"
+            />
+            <button onClick={() => setShowAdminModal(false)} className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Save Admin Key</button>
+          </div>
+        </div>
+      )}
+
+      {isPlanModalOpen && (
+        <PlanModal theme={theme} plan={editingPlan} onSave={handleSavePlan} onClose={() => { setIsPlanModalOpen(false); setEditingPlan(null); }} />
+      )}
     </div>
   );
 }
 
-function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, onClose, pushNotification }) {
+function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotification }) {
   const [isRegisterMode, setIsRegisterMode] = useState(!userProfile.loggedIn);
   const [email, setEmail] = useState(userProfile.email || '');
   const [password, setPassword] = useState('');
-  const [dob, setDob] = useState('');
   const [nickname, setNickname] = useState(userProfile.nickname || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email || !password) return;
 
-    if (isRegisterMode) {
-      if (!dob) { alert('Please provide your date of birth.'); return; }
-      if (usersDb.find(u => u.email === email)) {
-        alert('Email is already registered! Please sign in.');
-        return;
-      }
-      
-      const finalNickname = nickname.trim() || email.split('@')[0];
-      const newUser = { email, password, dob, nickname: finalNickname, userId: 'usr-' + Date.now().toString(36) };
-      
-      setUsersDb([...usersDb, newUser]);
-      setUserProfile({ loggedIn: true, email: newUser.email, nickname: newUser.nickname, userId: newUser.userId });
-      pushNotification(`Welcome to Stashly, ${finalNickname}! 🚀`, `Your account has been successfully created.`);
-      onClose();
-    } else {
-      const user = usersDb.find(u => u.email === email);
-      if (!user) {
-        alert('No account found with this email. Please create an account.');
-        return;
-      }
-      if (user.password !== password) {
-        alert('Incorrect password. Please try again.');
-        return;
-      }
+    const finalNickname = nickname.trim() || email.split('@')[0];
 
-      setUserProfile({ loggedIn: true, email: user.email, nickname: user.nickname, userId: user.userId });
-      pushNotification(`Welcome back, ${user.nickname}! 🚀`, `Login was successful.`);
-      onClose();
-    }
+    setUserProfile({
+      loggedIn: true,
+      email: email,
+      nickname: finalNickname,
+      userId: userProfile.userId || 'usr-' + Date.now().toString(36)
+    });
+
+    pushNotification(
+      `Welcome to Stashly, ${finalNickname}! 🚀`,
+      `Your account and nickname are active. Use your nickname for shared alerts with your partner.`
+    );
+
+    onClose();
   };
 
   const handleSignOut = () => {
     setUserProfile({ loggedIn: false, email: '', nickname: '', userId: '' });
-  };
-
-  const handleClose = () => {
-    if (!userProfile.loggedIn) return;
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 shadow-2xl`}>
-        
-        {!userProfile.loggedIn ? (
-          <div className="text-center space-y-1 mb-6">
-            <h2 className="text-2xl font-black text-slate-100">Hey, hello, welcome.</h2>
-            <h3 className="text-base font-bold text-slate-300">Welcome to stashly.com.</h3>
-            <p className="text-xs opacity-60 mt-2 text-slate-400">Please fill out these forms. Please fill out email, date of birth, and password.</p>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <UserCircle className={`w-6 h-6 ${theme.textAccent}`} />
-              <div>
-                <h3 className="text-sm font-bold">Stashly Account</h3>
-              </div>
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl`}>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <UserCircle className={`w-6 h-6 ${theme.textAccent}`} />
+            <div>
+              <h3 className="text-sm font-bold">Stashly Account & Profile</h3>
+              <p className="text-[10px] opacity-60">Set your login email & app nickname</p>
             </div>
-            <button onClick={handleClose} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
           </div>
-        )}
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
 
         {userProfile.loggedIn ? (
           <div className="space-y-4">
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="opacity-60">Status:</span>
-                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">✓ Logged In</span>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">
+                  ✓ Logged In
+                </span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="opacity-60">Nickname:</span>
+                <span className="opacity-60">App Nickname:</span>
                 <span className={`font-bold ${theme.textAccent}`}>{userProfile.nickname}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
@@ -458,55 +877,104 @@ function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, on
                 <span className="font-mono text-[11px] opacity-90">{userProfile.email}</span>
               </div>
             </div>
-            <button onClick={handleSignOut} className="w-full py-2.5 rounded-xl font-semibold text-xs border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 flex items-center justify-center gap-2">
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Update Nickname</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="e.g. Alex, Johnny"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    if (nickname.trim()) {
+                      setUserProfile(prev => ({ ...prev, nickname: nickname.trim() }));
+                      pushNotification('Profile Updated', `Your nickname has been changed to ${nickname.trim()}`);
+                    }
+                  }}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold ${theme.btnPrimary}`}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSignOut}
+              className="w-full py-2.5 rounded-xl font-semibold text-xs border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 flex items-center justify-center gap-2"
+            >
               <LogOut className="w-4 h-4" /> Sign Out of Account
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex border-b border-slate-800 mb-2">
-              <button type="button" onClick={() => setIsRegisterMode(true)} className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${isRegisterMode ? `${theme.borderAccent} ${theme.textAccent}` : 'border-transparent opacity-50'}`}>Register</button>
-              <button type="button" onClick={() => setIsRegisterMode(false)} className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${!isRegisterMode ? `${theme.borderAccent} ${theme.textAccent}` : 'border-transparent opacity-50'}`}>Sign In</button>
+              <button
+                type="button"
+                onClick={() => setIsRegisterMode(true)}
+                className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${isRegisterMode ? `${theme.borderAccent} ${theme.textAccent}` : 'border-transparent opacity-50'}`}
+              >
+                Create Account
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsRegisterMode(false)}
+                className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${!isRegisterMode ? `${theme.borderAccent} ${theme.textAccent}` : 'border-transparent opacity-50'}`}
+              >
+                Sign In
+              </button>
             </div>
 
-            {isRegisterMode && (
-              <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Date of Birth</label>
-                <div className="relative mt-1">
-                  <input type="date" required={isRegisterMode} value={dob} onChange={e => setDob(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2.5 text-xs focus:outline-none" />
-                  <CalendarDays className="w-4 h-4 absolute left-3 top-3 opacity-50" />
-                </div>
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">App Nickname (What should we call you?)</label>
+              <div className="relative mt-1">
+                <input
+                  type="text"
+                  placeholder="e.g. Alex, Johnny, Sarah..."
+                  required={isRegisterMode}
+                  value={nickname}
+                  onChange={e => setNickname(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs focus:outline-none"
+                />
+                <User className="w-4 h-4 absolute left-3 top-2.5 opacity-50" />
               </div>
-            )}
+            </div>
 
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Email Address</label>
               <div className="relative mt-1">
-                <input type="email" placeholder="yourname@gmail.com" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2.5 text-xs focus:outline-none" />
-                <AtSign className="w-4 h-4 absolute left-3 top-3 opacity-50" />
+                <input
+                  type="email"
+                  placeholder="yourname@gmail.com"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs focus:outline-none"
+                />
+                <AtSign className="w-4 h-4 absolute left-3 top-2.5 opacity-50" />
               </div>
             </div>
 
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Password</label>
               <div className="relative mt-1">
-                <input type="password" placeholder="••••••••" required value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2.5 text-xs focus:outline-none" />
-                <KeyRound className="w-4 h-4 absolute left-3 top-3 opacity-50" />
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs focus:outline-none"
+                />
+                <KeyRound className="w-4 h-4 absolute left-3 top-2.5 opacity-50" />
               </div>
             </div>
 
-            {isRegisterMode && (
-              <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">App Nickname (Optional)</label>
-                <div className="relative mt-1">
-                  <input type="text" placeholder="e.g. Alex" value={nickname} onChange={e => setNickname(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2.5 text-xs focus:outline-none" />
-                  <UserCircle className="w-4 h-4 absolute left-3 top-3 opacity-50" />
-                </div>
-              </div>
-            )}
-
-            <button type="submit" className={`w-full py-3.5 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
-              <LogIn className="w-4 h-4" /> {isRegisterMode ? 'Complete Registration' : 'Secure Sign In'}
+            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
+              <LogIn className="w-4 h-4" /> {isRegisterMode ? 'Create Account & Save Profile' : 'Sign In'}
             </button>
           </form>
         )}
@@ -515,7 +983,117 @@ function AuthModal({ theme, userProfile, setUserProfile, usersDb, setUsersDb, on
   );
 }
 
+function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) {
+  const [partnerInput, setPartnerInput] = useState('');
+  const [partnerName, setPartnerName] = useState(household.partnerName || '');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = () => {
+    navigator.clipboard?.writeText(household.householdId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleConnectPartner = (e) => {
+    e.preventDefault();
+    if (!partnerInput) return;
+
+    setHousehold(prev => ({
+      ...prev,
+      partnerEmail: partnerInput,
+      partnerName: partnerName || partnerInput.split('@')[0],
+      isConnected: true
+    }));
+    onClose();
+  };
+
+  const handleDisconnect = () => {
+    setHousehold(prev => ({ ...prev, partnerEmail: '', partnerName: '', isConnected: false }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <HeartHandshake className={`w-6 h-6 ${theme.textAccent}`} />
+            <div>
+              <h3 className="text-sm font-bold">Shared Vault & Partner Account</h3>
+              <p className="text-[10px] opacity-60">
+                {userProfile.nickname ? `${userProfile.nickname}'s Vault Sync` : 'Merge budgets with your spouse or partner'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="opacity-60 font-semibold uppercase text-[10px]">Vault Status</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${household.isConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+              {household.isConnected ? '❤️ Connected Vault' : '👤 Personal Vault'}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center text-xs">
+            <span className="opacity-60">Your Household Code:</span>
+            <div className="flex items-center gap-1.5 font-mono font-bold text-emerald-400 bg-slate-900 px-2 py-1 rounded border border-slate-800">
+              <span>{household.householdId}</span>
+              <button onClick={handleCopyCode} className="text-slate-400 hover:text-white">
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {!household.isConnected ? (
+          <form onSubmit={handleConnectPartner} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Email or Sync Code</label>
+              <input
+                type="text"
+                placeholder="e.g. partner@gmail.com or SB-98X21"
+                required
+                value={partnerInput}
+                onChange={e => setPartnerInput(e.target.value)}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname / Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Anna, John, Sarah..."
+                value={partnerName}
+                onChange={e => setPartnerName(e.target.value)}
+                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
+              />
+            </div>
+
+            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
+              <UserPlus className="w-4 h-4" /> Merge Accounts & Sync
+            </button>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl text-xs space-y-1">
+              <p className="font-bold text-emerald-400">Vault synced with {household.partnerName || household.partnerEmail}</p>
+              <p className="text-[10px] opacity-70">All logged expenses, cashflow plans, and grocery items are now shared in real-time.</p>
+            </div>
+
+            <button onClick={handleDisconnect} className="w-full py-2.5 rounded-xl font-semibold text-xs border border-rose-500/30 text-rose-400 hover:bg-rose-500/10">
+              Unlink Partner Account
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
+  const [filterType, setFilterType] = useState('all');
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
 
@@ -528,6 +1106,12 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
     const y = 100 - (((d.endingBalance - minBal) / range) * 80 + 10);
     return `${x},${y}`;
   }).join(' ');
+
+  const filteredProjections = dailyProjections.filter(d => {
+    if (filterType === 'bills') return d.hasNetExpense || d.hasNetIncome;
+    if (filterType === 'low') return d.endingBalance < 100;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -551,7 +1135,7 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
         </div>
 
         <div className={`p-5 rounded-2xl border bg-gradient-to-br ${theme.bgGlow} to-slate-900 ${theme.cardBorder}`}>
-          <p className={`text-xs font-bold uppercase flex items-center gap-1.5 ${theme.textAccent}`}><ShieldCheck className="w-4 h-4" /> Safe to Spend</p>
+          <p className={`text-xs font-bold uppercase flex items-center gap-1.5 ${theme.textAccent}`}><ShieldCheck className="w-4 h-4" /> Safe to Spend Today</p>
           <p className={`text-2xl font-black mt-1 ${theme.textAccent}`}>{formatCurrency(safeToSpendToday)}</p>
         </div>
 
@@ -574,7 +1158,7 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
       </div>
 
       <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
-        <h3 className="text-base font-bold flex items-center gap-2"><TrendingUp className={`w-5 h-5 ${theme.textAccent}`} /> Daily Balance Projection</h3>
+        <h3 className="text-base font-bold flex items-center gap-2"><TrendingUp className={`w-5 h-5 ${theme.textAccent}`} /> Daily Balance Projection ({projectionDays} Days)</h3>
         <div className="h-56 w-full relative pt-4 pb-2">
           <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
             <line x1="0" y1="20" x2="100" y2="20" stroke="#334155" strokeDasharray="2,2" strokeWidth="0.5" />
@@ -589,23 +1173,21 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
         <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-5 space-y-4 flex flex-col`}>
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-bold">Planned Income & Expenses</h4>
-            <button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}>
-              <Plus className="w-4 h-4" /> Add Plan
-            </button>
+            <button onClick={onOpenAddPlan} className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 border ${theme.borderAccent} ${theme.bgAccent} ${theme.textAccent}`}><Plus className="w-4 h-4" /> Add Plan</button>
           </div>
-          <div className="space-y-2.5 overflow-y-auto max-h-[450px]">
+          <div className="space-y-2.5 overflow-y-auto max-h-[380px]">
             {cashflowPlans.length === 0 ? (
               <p className="text-xs opacity-50 text-center py-8 border border-dashed border-slate-800 rounded-xl">No plans added yet.</p>
             ) : (
               cashflowPlans.map(plan => (
-                <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between">
+                <div key={plan.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
                   <div>
                     <h5 className="text-xs font-bold">{plan.title}</h5>
-                    <span className="text-[10px] opacity-60 uppercase">{plan.category} • {plan.frequency}</span>
+                    <span className="text-[10px] opacity-60">{plan.frequency}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-bold ${plan.type === 'Income' ? 'text-emerald-400' : 'text-rose-400'}`}>{plan.type === 'Income' ? '+' : '-'}{formatCurrency(plan.amount)}</span>
-                    <button onClick={() => onEditPlan(plan)} className="text-slate-500 hover:text-white p-1"><Edit3 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => onEditPlan(plan)} className="text-slate-400 hover:text-white p-1"><Edit3 className="w-3.5 h-3.5" /></button>
                     <button onClick={() => onDeletePlan(plan.id)} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
@@ -628,7 +1210,7 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
-                {dailyProjections.map(d => (
+                {filteredProjections.map(d => (
                   <tr key={d.date} className="hover:bg-slate-800/40">
                     <td className="p-3 font-semibold font-sans">{d.displayDate} ({d.dayName})</td>
                     <td className="p-3 opacity-60">{formatCurrency(d.startingBalance)}</td>
@@ -1255,6 +1837,8 @@ function AnalyticsView({ theme, transactions, formatCurrency }) {
 function SettingsView({ theme, currentTheme, setCurrentTheme, currentBg, setCurrentBg, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, household, onOpenPartnerModal, pushEnabled, onRequestPush, onPopFunFact, userProfile, onOpenAuthModal }) {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      
+      {/* User Account Profile Settings */}
       <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
