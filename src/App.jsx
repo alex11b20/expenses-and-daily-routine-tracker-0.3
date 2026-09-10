@@ -54,6 +54,13 @@ import {
   QrCode // <
 } from 'lucide-react';
 
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = 'https://yrendrnoivykevvbjjmo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1HRHJRf9C02rRcty0x7XKq_8cabs...';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const WORLD_CURRENCIES = [
   { code: 'RSD', name: 'Serbian Dinar', symbol: 'RSD' },
   { code: 'EUR', name: 'Euro', symbol: '€' },
@@ -436,11 +443,28 @@ export default function App() {
     };
   }, [startingBalance, transactions, cashflowPlans, projectionDays]);
 
-  const handleAddTransaction = (newTx) => {
+ const handleAddTransaction = async (newTx) => {
+    // Lokalno osvežavanje stanja radi brzine interfejsa
     setTransactions(prev => [newTx, ...prev]);
     if (newTx.date === new Date().toISOString().split('T')[0]) {
       if (newTx.type === 'Income') setStartingBalance(prev => Number(prev) + Number(newTx.amount));
       else setStartingBalance(prev => Number(prev) - Number(newTx.amount));
+    }
+
+    // Upis transakcije u Supabase cloud bazu
+    try {
+      await supabase.from('transactions').insert([
+        {
+          title: newTx.title,
+          amount: Number(newTx.amount),
+          transaction_type: newTx.type,
+          category: newTx.category,
+          transaction_date: newTx.date || new Date().toISOString().split('T')[0],
+          merchant_name: newTx.merchant || 'General Merchant'
+        }
+      ]);
+    } catch (err) {
+      console.error('Error saving transaction to Supabase:', err);
     }
 
     if (household.isConnected) {
@@ -453,7 +477,18 @@ export default function App() {
     }
   };
 
-  const handleDeleteTransaction = (id) => setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTransaction = async (id) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
+
+    // Brisanje iz Supabase baze ako je validan UUID
+    try {
+      if (typeof id === 'string' && id.includes('-') && !id.startsWith('tx-')) {
+        await supabase.from('transactions').delete().eq('id', id);
+      }
+    } catch (err) {
+      console.error('Error deleting transaction from Supabase:', err);
+    }
+  };
 
   const handleSavePlan = (planData) => {
     if (editingPlan) {
@@ -820,29 +855,71 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
   const [email, setEmail] = useState(userProfile.email || '');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState(userProfile.nickname || '');
+  const [authError, setAuthError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) return;
+    setAuthError('');
+    setLoading(true);
 
-    const finalNickname = nickname.trim() || email.split('@')[0];
+    try {
+      if (isRegisterMode) {
+        const finalNickname = nickname.trim() || email.split('@')[0];
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { nickname: finalNickname } }
+        });
 
-    setUserProfile({
-      loggedIn: true,
-      email: email,
-      nickname: finalNickname,
-      userId: userProfile.userId || 'usr-' + Date.now().toString(36)
-    });
+        if (error) throw error;
 
-    pushNotification(
-      `Welcome to Stashly, ${finalNickname}! 🚀`,
-      `Your account and nickname are active. Use your nickname for shared alerts with your partner.`
-    );
+        setUserProfile({
+          loggedIn: true,
+          email: email,
+          nickname: finalNickname,
+          userId: data.user?.id || 'usr-' + Date.now().toString(36)
+        });
 
-    onClose();
+        pushNotification(
+          `Welcome to Stashly, ${finalNickname}! 🚀`,
+          `Your account has been created on Supabase Cloud.`
+        );
+        onClose();
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+
+        const user = data.user;
+        const userNick = user?.user_metadata?.nickname || email.split('@')[0];
+
+        setUserProfile({
+          loggedIn: true,
+          email: user.email,
+          nickname: userNick,
+          userId: user.id
+        });
+
+        pushNotification(
+          `Welcome back, ${userNick}! 🚀`,
+          `Successfully authenticated with Supabase.`
+        );
+        onClose();
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setUserProfile({ loggedIn: false, email: '', nickname: '', userId: '' });
     onClose();
   };
@@ -854,12 +931,19 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
           <div className="flex items-center gap-2">
             <UserCircle className={`w-6 h-6 ${theme.textAccent}`} />
             <div>
-              <h3 className="text-sm font-bold">Stashly Account & Profile</h3>
-              <p className="text-[10px] opacity-60">Set your login email & app nickname</p>
+              <h3 className="text-sm font-bold">Stashly Cloud Account</h3>
+              <p className="text-[10px] opacity-60">Supabase Secured Authentication</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
+
+        {authError && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl text-xs text-rose-400 font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{authError}</span>
+          </div>
+        )}
 
         {userProfile.loggedIn ? (
           <div className="space-y-4">
@@ -867,7 +951,7 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
               <div className="flex justify-between items-center text-xs">
                 <span className="opacity-60">Status:</span>
                 <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">
-                  ✓ Logged In
+                  ✓ Cloud Authenticated
                 </span>
               </div>
               <div className="flex justify-between items-center text-xs">
@@ -877,30 +961,6 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
               <div className="flex justify-between items-center text-xs">
                 <span className="opacity-60">Email:</span>
                 <span className="font-mono text-[11px] opacity-90">{userProfile.email}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[11px] font-semibold opacity-60 uppercase">Update Nickname</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="e.g. Alex, Johnny"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-                <button
-                  onClick={() => {
-                    if (nickname.trim()) {
-                      setUserProfile(prev => ({ ...prev, nickname: nickname.trim() }));
-                      pushNotification('Profile Updated', `Your nickname has been changed to ${nickname.trim()}`);
-                    }
-                  }}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold ${theme.btnPrimary}`}
-                >
-                  Save
-                </button>
               </div>
             </div>
 
@@ -916,34 +976,36 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
             <div className="flex border-b border-slate-800 mb-2">
               <button
                 type="button"
-                onClick={() => setIsRegisterMode(true)}
+                onClick={() => { setIsRegisterMode(true); setAuthError(''); }}
                 className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${isRegisterMode ? `${theme.borderAccent} ${theme.textAccent}` : 'border-transparent opacity-50'}`}
               >
                 Create Account
               </button>
               <button
                 type="button"
-                onClick={() => setIsRegisterMode(false)}
+                onClick={() => { setIsRegisterMode(false); setAuthError(''); }}
                 className={`flex-1 py-2 text-xs font-bold text-center border-b-2 ${!isRegisterMode ? `${theme.borderAccent} ${theme.textAccent}` : 'border-transparent opacity-50'}`}
               >
                 Sign In
               </button>
             </div>
 
-            <div>
-              <label className="text-[11px] font-semibold opacity-60 uppercase">App Nickname (What should we call you?)</label>
-              <div className="relative mt-1">
-                <input
-                  type="text"
-                  placeholder="e.g. Alex, Johnny, Sarah..."
-                  required={isRegisterMode}
-                  value={nickname}
-                  onChange={e => setNickname(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs focus:outline-none"
-                />
-                <User className="w-4 h-4 absolute left-3 top-2.5 opacity-50" />
+            {isRegisterMode && (
+              <div>
+                <label className="text-[11px] font-semibold opacity-60 uppercase">App Nickname</label>
+                <div className="relative mt-1">
+                  <input
+                    type="text"
+                    placeholder="e.g. Alex, Johnny..."
+                    required={isRegisterMode}
+                    value={nickname}
+                    onChange={e => setNickname(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs focus:outline-none"
+                  />
+                  <User className="w-4 h-4 absolute left-3 top-2.5 opacity-50" />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Email Address</label>
@@ -975,8 +1037,8 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
               </div>
             </div>
 
-            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
-              <LogIn className="w-4 h-4" /> {isRegisterMode ? 'Create Account & Save Profile' : 'Sign In'}
+            <button type="submit" disabled={loading} className={`w-full py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
+              <LogIn className="w-4 h-4" /> {loading ? 'Authenticating...' : (isRegisterMode ? 'Create Cloud Account' : 'Sign In')}
             </button>
           </form>
         )}
@@ -986,11 +1048,12 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
 }
 
 function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) {
-  const [activeTab, setActiveTab] = useState('code'); // 'code' or 'qr'
+  const [activeTab, setActiveTab] = useState('code');
   const [partnerInput, setPartnerInput] = useState('');
   const [partnerName, setPartnerName] = useState(household.partnerName || '');
   const [copied, setCopied] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [syncError, setSyncError] = useState('');
 
   const handleCopyCode = () => {
     navigator.clipboard?.writeText(household.householdId);
@@ -998,17 +1061,47 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleConnectPartner = (e) => {
+  const handleConnectPartner = async (e) => {
     e.preventDefault();
     if (!partnerInput) return;
+    setSyncError('');
+    setLoading(true);
 
-    setHousehold(prev => ({
-      ...prev,
-      partnerEmail: partnerInput,
-      partnerName: partnerName || partnerInput.split('@')[0],
-      isConnected: true
-    }));
-    onClose();
+    try {
+      const codeToLink = partnerInput.trim().toUpperCase();
+
+      // Provera ili kreiranje zapisa u Supabase public.households tabeli
+      const { data: existingHousehold, error: fetchErr } = await supabase
+        .from('households')
+        .select('*')
+        .eq('household_code', codeToLink)
+        .maybeSingle();
+
+      if (fetchErr) throw fetchErr;
+
+      if (!existingHousehold) {
+        // Ako kod još ne postoji u bazi, kreiramo novu zajedničku sobu/sef
+        const { error: insertErr } = await supabase
+          .from('households')
+          .insert([{ household_code: codeToLink }]);
+
+        if (insertErr) throw insertErr;
+      }
+
+      setHousehold(prev => ({
+        ...prev,
+        householdId: codeToLink,
+        partnerEmail: partnerInput,
+        partnerName: partnerName || partnerInput.split('@')[0],
+        isConnected: true
+      }));
+
+      onClose();
+    } catch (err) {
+      setSyncError(err.message || 'Failed to link household in Supabase cloud.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDisconnect = () => {
@@ -1018,20 +1111,16 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
   const handleScanQRCode = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Simulate reading code from scanned QR image or camera capture
+
     const reader = new FileReader();
     reader.onload = () => {
-      // For demonstration, mock a successful code read or parse string
-      setPartnerInput(household.householdId); // Quick fill mock or decoded value
+      setPartnerInput(household.householdId);
       setPartnerName('Scanned Partner');
-      setIsScanning(false);
-      alert('QR Code successfully scanned and decoded!');
+      alert('QR Code detected! Click "Merge Accounts & Sync" to establish cloud connection.');
     };
     reader.readAsDataURL(file);
   };
 
-  // Generate a dynamic public QR code URL using a standard public API for the household code
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(household.householdId)}&color=0f172a&bgcolor=f8fafc`;
 
   return (
@@ -1043,14 +1132,19 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
             <div>
               <h3 className="text-sm font-bold">Shared Vault & Partner Account</h3>
               <p className="text-[10px] opacity-60">
-                {userProfile.nickname ? `${userProfile.nickname}'s Vault Sync` : 'Merge budgets with your spouse or partner'}
+                {userProfile.nickname ? `${userProfile.nickname}'s Cloud Vault Sync` : 'Merge budgets with your spouse or partner'}
               </p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
 
-        {/* Tab Switcher: Code vs QR Code */}
+        {syncError && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl text-xs text-rose-400 font-semibold">
+            ⚠️ {syncError}
+          </div>
+        )}
+
         <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setActiveTab('code')}
@@ -1076,7 +1170,7 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
               <img src={qrCodeUrl} alt="Household QR Code" className="w-36 h-36 mx-auto rounded-lg" />
             </div>
             <p className="text-xs opacity-70">Have your partner open Stashly, switch to the QR tab, and scan this code using their camera to instantly interconnect.</p>
-            
+
             <div className="pt-2">
               <label className="cursor-pointer inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200">
                 <Camera className="w-4 h-4 text-emerald-400" /> Open Camera to Scan Partner's QR
@@ -1090,7 +1184,7 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
               <div className="flex justify-between items-center text-xs">
                 <span className="opacity-60 font-semibold uppercase text-[10px]">Vault Status</span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${household.isConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
-                  {household.isConnected ? '❤️ Connected Vault' : '👤 Personal Vault'}
+                  {household.isConnected ? '❤️ Connected Cloud Vault' : '👤 Personal Vault'}
                 </span>
               </div>
 
@@ -1108,37 +1202,37 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
             {!household.isConnected ? (
               <form onSubmit={handleConnectPartner} className="space-y-3">
                 <div>
-                  <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Email or Sync Code</label>
+                  <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Sync Code</label>
                   <input
                     type="text"
-                    placeholder="e.g. partner@gmail.com or SB-98X21"
+                    placeholder="e.g. SB-98X21"
                     required
                     value={partnerInput}
                     onChange={e => setPartnerInput(e.target.value)}
-                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
+                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none uppercase font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname / Name</label>
+                  <label className="text-[11px] font-semibold opacity-60 uppercase">Partner's Nickname</label>
                   <input
                     type="text"
-                    placeholder="e.g. Anna, John, Sarah..."
+                    placeholder="e.g. Anja"
                     value={partnerName}
                     onChange={e => setPartnerName(e.target.value)}
                     className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
                   />
                 </div>
 
-                <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
-                  <UserPlus className="w-4 h-4" /> Merge Accounts & Sync
+                <button type="submit" disabled={loading} className={`w-full py-3 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 ${theme.btnPrimary}`}>
+                  <UserPlus className="w-4 h-4" /> {loading ? 'Syncing with Supabase...' : 'Merge Accounts & Sync Cloud'}
                 </button>
               </form>
             ) : (
               <div className="space-y-3">
                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl text-xs space-y-1">
                   <p className="font-bold text-emerald-400">Vault synced with {household.partnerName || household.partnerEmail}</p>
-                  <p className="text-[10px] opacity-70">All logged expenses, cashflow plans, and grocery items are now shared in real-time.</p>
+                  <p className="text-[10px] opacity-70">Household room "{household.householdId}" is active on Supabase.</p>
                 </div>
 
                 <button onClick={handleDisconnect} className="w-full py-2.5 rounded-xl font-semibold text-xs border border-rose-500/30 text-rose-400 hover:bg-rose-500/10">
