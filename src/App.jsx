@@ -339,6 +339,40 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Povlačenje transakcija iz Supabase baze nakon uspešne prijave
+  useEffect(() => {
+    const fetchCloudTransactions = async () => {
+      if (userProfile.loggedIn) {
+        try {
+          const { data, error } = await supabase
+            .from('transactions')
+            .select('*')
+            .order('transaction_date', { ascending: false });
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            // Mapiranje cloud formata nazad u React format
+            const formatted = data.map(t => ({
+              id: t.id,
+              title: t.title,
+              amount: Number(t.amount),
+              type: t.transaction_type,
+              category: t.category,
+              date: t.transaction_date,
+              merchant: t.merchant_name
+            }));
+            setTransactions(formatted);
+          }
+        } catch (err) {
+          console.error('Greška pri povlačenju transakcija:', err);
+        }
+      }
+    };
+
+    fetchCloudTransactions();
+  }, [userProfile.loggedIn]);
+
   const pushNotification = (title, body, type = 'info') => {
     const greetingName = userProfile.nickname ? `, ${userProfile.nickname}` : '';
     const personalizedTitle = title.includes(userProfile.nickname) ? title : `${title}${greetingName}`;
