@@ -258,10 +258,8 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [shoppingLists, setShoppingLists] = useState(() => {
-    const saved = localStorage.getItem('sb_shopping_lists');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [shoppingLists, setShoppingLists] = useState([]);
+  const [shoppingUserId, setShoppingUserId] = useState(null);
 
   const [wishlistItems, setWishlistItems] = useState(() => {
     const saved = localStorage.getItem('sb_wishlist_items');
@@ -304,7 +302,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
   useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
-  useEffect(() => { localStorage.setItem('sb_shopping_lists', JSON.stringify(shoppingLists)); }, [shoppingLists]);
   useEffect(() => { localStorage.setItem('sb_wishlist_items', JSON.stringify(wishlistItems)); }, [wishlistItems]);
   useEffect(() => { localStorage.setItem('sb_household', JSON.stringify(household)); }, [household]);
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
@@ -313,6 +310,7 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      setShoppingUserId(session?.user?.id || null);
       if (session?.user) {
         setUserProfile({
           loggedIn: true,
@@ -324,6 +322,7 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setShoppingUserId(session?.user?.id || null);
       if (session?.user) {
         setUserProfile({
           loggedIn: true,
@@ -338,6 +337,52 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load grocery lists only after Supabase confirms the active session.
+  useEffect(() => {
+    let cancelled = false;
+    setShoppingLists([]);
+    if (!shoppingUserId) return;
+
+    const loadShoppingLists = async () => {
+      try {
+        const { data: lists, error } = await supabase
+          .from('shopping_lists')
+          .select(`
+            id, title, category, estimated_total, currency, created_at,
+            shopping_list_items (
+              id, item_name, quantity, estimated_price, checked
+            )
+          `)
+          .eq('user_id', shoppingUserId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (cancelled) return;
+
+        setShoppingLists((lists || []).map(list => ({
+          id: list.id,
+          title: list.title,
+          category: list.category,
+          totalEstimated: Number(list.estimated_total || 0),
+          currency: list.currency,
+          date: list.created_at?.split('T')[0],
+          estimatedItems: (list.shopping_list_items || []).map(item => ({
+            id: item.id,
+            item: item.item_name,
+            qty: item.quantity,
+            estimatedPrice: Number(item.estimated_price || 0),
+            checked: item.checked
+          }))
+        })));
+      } catch (error) {
+        if (!cancelled) console.error('Failed to load shopping lists:', error);
+      }
+    };
+
+    loadShoppingLists();
+    return () => { cancelled = true; };
+  }, [shoppingUserId]);
 
   // Povlačenje transakcija iz Supabase baze nakon uspešne prijave
   useEffect(() => {
