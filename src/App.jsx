@@ -301,7 +301,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
   useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
-  useEffect(() => { localStorage.setItem('sb_shopping_lists', JSON.stringify(shoppingLists)); }, [shoppingLists]);
+ 
   useEffect(() => { localStorage.setItem('sb_wishlist_items', JSON.stringify(wishlistItems)); }, [wishlistItems]);
   useEffect(() => { localStorage.setItem('sb_household', JSON.stringify(household)); }, [household]);
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
