@@ -258,10 +258,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [shoppingLists, setShoppingLists] = useState(() => {
-    const saved = localStorage.getItem('sb_shopping_lists');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [shoppingLists, setShoppingLists] = useState([]);
 
   const [wishlistItems, setWishlistItems] = useState(() => {
     const saved = localStorage.getItem('sb_wishlist_items');
