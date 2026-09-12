@@ -364,14 +364,14 @@ export default function App() {
           id: list.id,
           title: list.title,
           category: list.category,
-          totalEstimated: Number(list.estimated_total || 0),
+          totalEstimated: list.estimated_total == null ? null : Number(list.estimated_total),
           currency: list.currency,
           date: list.created_at?.split('T')[0],
           estimatedItems: (list.shopping_list_items || []).map(item => ({
             id: item.id,
             item: item.item_name,
             qty: item.quantity,
-            estimatedPrice: Number(item.estimated_price || 0),
+            estimatedPrice: item.estimated_price == null ? null : Number(item.estimated_price),
             checked: item.checked
           }))
         })));
@@ -857,6 +857,7 @@ export default function App() {
 
         {activeTab === 'lists' && (
           <ShoppingListsView
+            key={shoppingUserId || 'signed-out'}
             theme={theme}
             geminiApiKey={geminiApiKey}
             selectedCurrency={selectedCurrency}
@@ -1727,6 +1728,14 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
   const [listTitle, setListTitle] = useState('');
   const [rawText, setRawText] = useState('');
   const [isEstimating, setIsEstimating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const saveInProgress = useRef(false);
+  const activeView = useRef(true);
+  useEffect(() => {
+    activeView.current = true;
+    return () => { activeView.current = false; };
+  }, []);
 
   const categories = [
     { id: 'Foods', label: 'Foods & Groceries', icon: ShoppingBag },
@@ -1736,9 +1745,69 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
     { id: 'Other', label: 'Other & Various', icon: Package }
   ];
 
+  const handleSaveList = async (e) => {
+    e.preventDefault();
+    if (saveInProgress.current || isEstimating) return;
+    const title = listTitle.trim();
+    const items = rawText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (!title || !items.length) {
+      setSaveMessage('Enter a title and at least one item.');
+      return;
+    }
+
+    saveInProgress.current = true;
+    setIsSaving(true);
+    setSaveMessage('');
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error('Please sign in before saving a list.');
+      if (!activeView.current) return;
+
+      const { data: list, error: listError } = await supabase
+        .from('shopping_lists')
+        .insert({ title, category: selectedCategory, currency: selectedCurrency,
+          estimated_total: null, user_id: user.id })
+        .select('id, title, category, currency, created_at')
+        .single();
+      if (listError) throw listError;
+
+      const { data: savedItems, error: itemsError } = await supabase
+        .from('shopping_list_items')
+        .insert(items.map(item => ({ list_id: list.id, user_id: user.id,
+          item_name: item, quantity: 1, estimated_price: null, checked: false })))
+        .select('id, item_name, quantity, estimated_price, checked');
+      if (itemsError) {
+        const { error: cleanupError } = await supabase.from('shopping_lists')
+          .delete().eq('id', list.id).eq('user_id', user.id);
+        if (cleanupError) throw new Error('Items could not be saved. An empty list may remain; your text is still here. ' + itemsError.message);
+        throw itemsError;
+      }
+
+      if (!activeView.current) return;
+      setShoppingLists(prev => [{
+        id: list.id, title: list.title, category: list.category,
+        currency: list.currency, date: list.created_at?.split('T')[0],
+        totalEstimated: null,
+        estimatedItems: savedItems.map(item => ({
+          id: item.id, item: item.item_name, qty: item.quantity,
+          estimatedPrice: null, checked: item.checked
+        }))
+      }, ...prev]);
+      setListTitle('');
+      setRawText('');
+      setSaveMessage('List saved.');
+    } catch (error) {
+      if (activeView.current) setSaveMessage('Could not save list: ' + error.message);
+    } finally {
+      saveInProgress.current = false;
+      if (activeView.current) setIsSaving(false);
+    }
+  };
+
   const handleEstimateCost = async (e) => {
     e.preventDefault();
-    if (!rawText.trim() || !listTitle.trim()) return;
+    if (saveInProgress.current || isEstimating || !rawText.trim() || !listTitle.trim()) return;
 
     if (!geminiApiKey) {
       alert('Gemini API key is required for AI estimations. Please configure it in Settings.');
@@ -1784,7 +1853,8 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={`lg:col-span-1 ${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
-          <form onSubmit={handleEstimateCost} className="space-y-3">
+          <form onSubmit={handleSaveList} className="space-y-3">
+            <fieldset disabled={isSaving || isEstimating} className="space-y-3">
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Category</label>
               <div className="grid grid-cols-2 gap-2 mt-1">
@@ -1799,9 +1869,12 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
             </div>
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Items List</label>
-              <textarea rows={5} placeholder="Write items here (e.g. 2x Milk 1L, 1kg Apples)..." required value={rawText} onChange={(e) => setRawText(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none font-mono" />
+              <textarea rows={5} placeholder={"One item per line, including quantity:\n2x Milk 1L\n1kg Apples"} required value={rawText} onChange={(e) => setRawText(e.target.value)} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none font-mono" />
             </div>
-            <button type="submit" disabled={isEstimating} className={`w-full font-bold py-3 rounded-xl text-xs uppercase ${theme.btnPrimary}`}>{isEstimating ? 'Estimating...' : 'Estimate Cost with AI'}</button>
+            <button type="submit" disabled={isSaving || isEstimating} className={`w-full font-bold py-3 rounded-xl text-xs uppercase ${theme.btnPrimary}`}>{isSaving ? 'Saving...' : 'Save List'}</button>
+            <button type="button" onClick={handleEstimateCost} disabled={isSaving || isEstimating} className="w-full font-bold py-3 rounded-xl text-xs uppercase border border-slate-700">{isEstimating ? 'Estimating...' : 'Estimate Cost with AI'}</button>
+            </fieldset>
+            {saveMessage && <p role="status" className="text-xs">{saveMessage}</p>}
           </form>
         </div>
 
@@ -1817,8 +1890,8 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
                     <p className="text-[10px] opacity-60">{list.category} • {formatDate(list.date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`font-mono font-bold text-base ${theme.textAccent}`}>~{formatCurrency(list.totalEstimated)}</span>
-                    <button onClick={() => convertListToTransaction(list)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${theme.btnPrimary}`}>Log as Expense</button>
+                    <span className={`font-mono font-bold text-base ${theme.textAccent}`}>{list.totalEstimated == null ? 'Not estimated' : `~${formatCurrency(list.totalEstimated)}`}</span>
+                    <button disabled={list.totalEstimated == null} title={list.totalEstimated == null ? 'Add a price estimate before logging an expense' : undefined} onClick={() => convertListToTransaction(list)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${theme.btnPrimary}`}>Log as Expense</button>
                     <button onClick={() => setShoppingLists(prev => prev.filter(l => l.id !== list.id))} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -1826,8 +1899,8 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
                 <div className="space-y-1">
                   {list.estimatedItems?.map((item, idx) => (
                     <div key={idx} className="flex justify-between text-xs py-1 border-b border-slate-800/40">
-                      <span>{item.qty} {item.item}</span>
-                      <span className="font-mono opacity-80">{formatCurrency(item.estimatedPrice)}</span>
+                      <span>{item.estimatedPrice == null ? item.item : `${item.qty} ${item.item}`}</span>
+                      <span className="font-mono opacity-80">{item.estimatedPrice == null ? '—' : formatCurrency(item.estimatedPrice)}</span>
                     </div>
                   ))}
                 </div>
