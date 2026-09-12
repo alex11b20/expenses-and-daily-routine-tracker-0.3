@@ -992,11 +992,11 @@ export default function App() {
         )}
 
         {activeTab === 'groceries' && (
-          <GroceryTrackerView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />
+          <GroceryTrackerView theme={theme} transactions={transactions.filter(t => financialAccount && t.accountId === financialAccount.id)} formatCurrency={formatCurrency} />
         )}
 
         {activeTab === 'analytics' && (
-          <AnalyticsView theme={theme} transactions={transactions} formatCurrency={formatCurrency} />
+          <AnalyticsView theme={theme} transactions={transactions.filter(t => financialAccount && t.accountId === financialAccount.id)} formatCurrency={formatCurrency} />
         )}
 
         {activeTab === 'settings' && (
