@@ -2035,6 +2035,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, onUpdateTransac
   const fileInputRef = useRef(null);
 
   const [editingId, setEditingId] = useState(null);
+  const [manualDate, setManualDate] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
   const [transactionMessage, setTransactionMessage] = useState('');
   const requestId = useRef(null);
@@ -2137,8 +2138,11 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, onUpdateTransac
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold opacity-60 uppercase">Date</label>
-                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs focus:outline-none" />
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="transaction-date" className="text-[11px] font-semibold opacity-60 uppercase">Date</label>
+                  <button type="button" onClick={() => setManualDate(value => !value)} className="text-[10px] underline">{manualDate ? 'Use date picker' : 'Type date'}</button>
+                </div>
+                <input id="transaction-date" type={manualDate ? 'text' : 'date'} placeholder="YYYY-MM-DD" required value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs focus:outline-none" />
               </div>
             </div>
 
