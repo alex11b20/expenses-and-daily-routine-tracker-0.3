@@ -217,8 +217,38 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+function localDate() {
+  const d = new Date();
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+}
+
+function moneyMinor(value, currency) {
+  const digits = currency === 'JPY' ? 0 : 2;
+  const text = String(value).trim();
+  if (!/^-?\d+(\.\d+)?$/.test(text)) throw new Error('Enter a valid money amount.');
+  const [whole, fraction = ''] = text.replace('-', '').split('.');
+  if (fraction.length > digits && /[1-9]/.test(fraction.slice(digits))) throw new Error('Too many decimal places for this currency.');
+  const minor = BigInt(whole) * (10n ** BigInt(digits)) + BigInt((fraction.slice(0,digits).padEnd(digits,'0')) || '0');
+  const signed = text.startsWith('-') ? -minor : minor;
+  if (signed > 900000000000000n || signed < -900000000000000n) throw new Error('Amount exceeds the supported range.');
+  return signed;
+}
+
+function accountBalance(account, transactions, today) {
+  if (!account) return 0;
+  let total = moneyMinor(account.opening_balance, account.currency);
+  for (const tx of transactions) {
+    if (tx.accountId === account.id && tx.date >= account.opening_date && tx.date <= today) {
+      const amount = moneyMinor(tx.amount, account.currency);
+      total += tx.type === 'Income' ? amount : -amount;
+    }
+  }
+  if (total > BigInt(Number.MAX_SAFE_INTEGER) || total < BigInt(Number.MIN_SAFE_INTEGER)) throw new Error('Balance exceeds the supported range.');
+  return Number(total) / (account.currency === 'JPY' ? 1 : 100);
+}
+
 function transactionFromRow(row) {
-  return { id: row.id, title: row.title, amount: Number(row.amount),
+  return { id: row.id, accountId: row.account_id, title: row.title, amount: Number(row.amount),
     type: row.transaction_type, category: row.category,
     date: row.transaction_date, merchant: row.merchant_name };
 }
@@ -246,13 +276,13 @@ export default function App() {
 
   const formatCurrency = (val) => {
     const curr = WORLD_CURRENCIES.find(c => c.code === selectedCurrency) || WORLD_CURRENCIES[0];
-    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(val || 0) + ' ' + curr.symbol;
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: selectedCurrency === 'JPY' ? 0 : 2 }).format(val || 0) + ' ' + curr.symbol;
   };
 
-  const [startingBalance, setStartingBalance] = useState(() => {
-    const saved = localStorage.getItem('sb_starting_balance');
-    return saved !== null ? Number(saved) : 0;
-  });
+  const [financialAccount, setFinancialAccount] = useState(null);
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [accountError, setAccountError] = useState('');
+  const [accountReload, setAccountReload] = useState(0);
 
   // Legacy browser records are preserved for an explicit import, never auto-loaded.
   const [transactions, setTransactions] = useState([]);
@@ -309,7 +339,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
   useEffect(() => { localStorage.setItem('fb_bg_style', currentBg); }, [currentBg]);
   useEffect(() => { localStorage.setItem('fb_currency', selectedCurrency); }, [selectedCurrency]);
-  useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
   useEffect(() => { localStorage.setItem('sb_wishlist_items', JSON.stringify(wishlistItems)); }, [wishlistItems]);
   useEffect(() => { localStorage.setItem('sb_household', JSON.stringify(household)); }, [household]);
@@ -328,6 +357,8 @@ export default function App() {
         sessionIdentity.current = { userId, generation: sessionIdentity.current.generation + 1 };
         transactionRevision.current += 1;
         setTransactions([]);
+        setFinancialAccount(null);
+        setAccountError('');
         setTransactionError('');
         setShoppingLists([]);
       }
@@ -409,7 +440,7 @@ export default function App() {
         // Supabase caps each response; page so older transactions remain included.
         for (let offset = 0; ; offset += 500) {
           const { data, error } = await supabase.from('transactions')
-            .select('id, title, amount, transaction_type, category, transaction_date, merchant_name')
+            .select('id, account_id, title, amount, transaction_type, category, transaction_date, merchant_name')
             .eq('user_id', shoppingUserId)
             .order('transaction_date', { ascending: false }).order('id', { ascending: false })
             .range(offset, offset + 499);
@@ -428,6 +459,54 @@ export default function App() {
     loadTransactions();
     return () => { cancelled = true; };
   }, [shoppingUserId, transactionReload]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const identity = sessionIdentity.current;
+    setAccountLoading(!!shoppingUserId); setAccountError('');
+    if (!shoppingUserId) { setFinancialAccount(null); return; }
+    supabase.from('financial_accounts').select().eq('owner_user_id', shoppingUserId).maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled || sessionIdentity.current !== identity) return;
+        if (error) { setAccountError(error.message); return; }
+        setFinancialAccount(data);
+        if (data) setSelectedCurrency(data.currency);
+      }).catch(error => { if (!cancelled && sessionIdentity.current === identity) setAccountError(error.message); })
+      .finally(() => { if (!cancelled && sessionIdentity.current === identity) setAccountLoading(false); });
+    return () => { cancelled = true; };
+  }, [shoppingUserId, accountReload]);
+
+  const balanceResult = useMemo(() => {
+    try { return { amount: accountBalance(financialAccount, transactions, localDate()), error: '' }; }
+    catch (error) { return { amount: 0, error: error.message }; }
+  }, [financialAccount, transactions]);
+  const startingBalance = balanceResult.amount;
+  const setStartingBalance = () => alert('Balance is calculated from your saved opening balance and transactions.');
+
+  const handleCreateAccount = async (draft) => {
+    const identity = sessionIdentity.current;
+    if (!identity.userId) throw new Error('Sign in first.');
+    moneyMinor(draft.opening_balance, draft.currency);
+    if (!draft.name.trim() || !draft.opening_date || draft.opening_date > localDate()) throw new Error('Enter an account name and an opening date no later than today.');
+    const { data, error } = await supabase.from('financial_accounts')
+      .insert({ ...draft, owner_user_id: identity.userId }).select().single();
+    if (error) { if (error.code === '23505') setAccountReload(n => n + 1); throw error; }
+    if (sessionIdentity.current !== identity) throw new Error('Your account changed.');
+    setFinancialAccount(data); setSelectedCurrency(data.currency);
+  };
+
+  const handleAssignLegacy = async () => {
+    const identity = sessionIdentity.current;
+    if (!financialAccount || transactionBusy.current) return;
+    transactionBusy.current = true;
+    try {
+      const { error } = await supabase.from('transactions').update({ account_id: financialAccount.id })
+        .eq('user_id', identity.userId).is('account_id', null);
+      if (error) throw error;
+      if (sessionIdentity.current === identity) setTransactionReload(n => n + 1);
+    } catch (error) { if (sessionIdentity.current === identity) setTransactionError(error.message); }
+    finally { transactionBusy.current = false; }
+  };
 
   const pushNotification = (title, body, type = 'info') => {
     const greetingName = userProfile.nickname ? `, ${userProfile.nickname}` : '';
@@ -492,7 +571,7 @@ export default function App() {
     for (let i = 0; i < projectionDays; i++) {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() + i);
-      const dateStr = targetDate.toISOString().split('T')[0];
+      const dateStr = [targetDate.getFullYear(), String(targetDate.getMonth()+1).padStart(2,'0'), String(targetDate.getDate()).padStart(2,'0')].join('-');
       const dayOfMonth = targetDate.getDate();
       const dayOfWeek = targetDate.getDay();
 
@@ -513,13 +592,6 @@ export default function App() {
 
       let actualIncomes = 0;
       let actualExpenses = 0;
-      transactions.forEach(t => {
-        if (t.date === dateStr) {
-          if (t.type === 'Income') actualIncomes += Number(t.amount);
-          else actualExpenses += Number(t.amount);
-        }
-      });
-
       const dayStartingBalance = currentBalance;
       const netChange = (plannedIncomes + actualIncomes) - (plannedExpenses + actualExpenses);
       const dayEndingBalance = dayStartingBalance + netChange;
@@ -561,52 +633,71 @@ export default function App() {
     };
   }, [startingBalance, transactions, cashflowPlans, projectionDays]);
 
- const handleAddTransaction = async (newTx) => {
-    // Lokalno osvežavanje stanja radi brzine interfejsa
-    setTransactions(prev => [newTx, ...prev]);
-    if (newTx.date === new Date().toISOString().split('T')[0]) {
-      if (newTx.type === 'Income') setStartingBalance(prev => Number(prev) + Number(newTx.amount));
-      else setStartingBalance(prev => Number(prev) - Number(newTx.amount));
-    }
-
-    // Upis transakcije u Supabase cloud bazu
+  const writeTransaction = async (operation, draft) => {
+    if (transactionBusy.current) return false;
+    const identity = sessionIdentity.current;
+    if (!identity.userId) { setTransactionError('Sign in to save transactions.'); return false; }
+    if (!financialAccount || accountLoading) { setTransactionError('Set up your financial account before saving transactions.'); return false; }
+    if (transactionsLoading) { setTransactionError('Wait for your saved transactions to finish loading.'); return false; }
+    transactionBusy.current = true;
+    transactionRevision.current += 1;
+    setTransactionError('');
     try {
-      await supabase.from('transactions').insert([
-        {
-          title: newTx.title,
-          amount: Number(newTx.amount),
-          transaction_type: newTx.type,
-          category: newTx.category,
-          transaction_date: newTx.date || new Date().toISOString().split('T')[0],
-          merchant_name: newTx.merchant || 'General Merchant'
-        }
-      ]);
-    } catch (err) {
-      console.error('Error saving transaction to Supabase:', err);
-    }
-
-    if (household.isConnected) {
-      const senderName = userProfile.nickname || 'You';
-      pushNotification(
-        `🛒 Partner Receipt Alert!`,
-        `${senderName} logged a transaction: ${newTx.title} (${formatCurrency(newTx.amount)})`,
-        'partner'
-      );
-    }
-  };
-
-  const handleDeleteTransaction = async (id) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
-
-    // Brisanje iz Supabase baze ako je validan UUID
-    try {
-      if (typeof id === 'string' && id.includes('-') && !id.startsWith('tx-')) {
-        await supabase.from('transactions').delete().eq('id', id);
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!auth?.user || auth.user.id !== identity.userId || sessionIdentity.current !== identity) {
+        throw new Error('Your account changed. Please try again.');
       }
-    } catch (err) {
-      console.error('Error deleting transaction from Supabase:', err);
+      let result;
+      if (operation === 'delete') {
+        result = await supabase.from('transactions').delete()
+          .eq('id', draft.id).eq('user_id', identity.userId).select('id').single();
+      } else {
+        moneyMinor(draft.amount, financialAccount.currency);
+        const amount = Number(draft.amount);
+        if (!draft.title?.trim() || !Number.isFinite(amount) || amount <= 0) throw new Error('Enter a title and an amount greater than zero.');
+        if (!['Income', 'Expense'].includes(draft.type)) throw new Error('Choose Income or Expense.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date || '') || !Number.isFinite(Date.parse(draft.date)) || new Date(draft.date).toISOString().slice(0,10) !== draft.date) throw new Error('Enter a valid date.');
+        if (draft.date > localDate()) throw new Error('Future expenses belong in planning, not actual transactions.');
+        const row = { account_id: financialAccount.id, title: draft.title.trim(), amount, transaction_type: draft.type,
+          category: draft.category || 'Other', transaction_date: draft.date,
+          merchant_name: draft.merchant?.trim() || 'General Merchant' };
+        if (draft.items?.length) throw new Error('Receipt item saving is not ready yet. Enter the confirmed total manually for now.');
+        if (operation === 'update') {
+          result = await supabase.from('transactions').update(row)
+            .eq('id', draft.id).eq('user_id', identity.userId).select().single();
+        } else {
+          result = await supabase.from('transactions').insert({ ...row, id: draft.id, user_id: identity.userId }).select().single();
+          // A lost response may follow a successful insert. Retry the same UUID.
+          if (result.error?.code === '23505') {
+            result = await supabase.from('transactions').select().eq('id', draft.id).eq('user_id', identity.userId).single();
+            if (!result.error && Object.entries(row).some(([key,value]) => key === 'amount' ? Number(result.data[key]) !== value : result.data[key] !== value)) {
+              throw new Error('This transaction was already saved with different values. Reload and edit the saved entry.');
+            }
+          }
+        }
+      }
+      if (result.error) throw result.error;
+      if (!result.data) throw new Error('The database did not confirm this change.');
+      if (sessionIdentity.current !== identity) return false;
+      if (operation === 'delete') setTransactions(prev => prev.filter(t => t.id !== draft.id));
+      else {
+        const saved = transactionFromRow(result.data);
+        setTransactions(prev => [saved, ...prev.filter(t => t.id !== saved.id)]
+          .sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)));
+      }
+      return true;
+    } catch (error) {
+      if (sessionIdentity.current === identity) setTransactionError('Transaction change failed: ' + error.message);
+      return false;
+    } finally {
+      transactionBusy.current = false;
     }
   };
+
+  const handleAddTransaction = (draft) => writeTransaction('create', draft);
+  const handleUpdateTransaction = (draft) => writeTransaction('update', draft);
+  const handleDeleteTransaction = (id) => writeTransaction('delete', { id });
 
   const handleSavePlan = (planData) => {
     if (editingPlan) {
@@ -835,6 +926,13 @@ export default function App() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {shoppingUserId && <FinancialAccountSetup key={shoppingUserId} theme={theme} account={financialAccount}
+          loading={accountLoading} error={accountError} onRetry={() => setAccountReload(n => n + 1)} onCreate={handleCreateAccount} />}
+        {balanceResult.error && <p role="alert" className="text-rose-400">{balanceResult.error}</p>}
+        {financialAccount && transactions.some(t => !t.accountId) && <div className="border border-amber-500/40 rounded-xl p-4 text-sm space-y-2">
+          <p>{transactions.filter(t => !t.accountId).length} existing transactions have no confirmed account or currency. Review them in Transaction History before assigning them. They are excluded from the current balance.</p>
+          <button type="button" onClick={handleAssignLegacy} className="underline">Assign these existing transactions to {financialAccount.name} ({financialAccount.currency})</button>
+        </div>}
         {transactionsLoading && <p role="status" className="text-sm opacity-70">Loading saved transactions...</p>}
         {transactionError && <div role="alert" className="text-sm text-rose-400">
           {transactionError} <button type="button" onClick={() => setTransactionReload(n => n + 1)} className="underline">Retry</button>
@@ -844,6 +942,7 @@ export default function App() {
             theme={theme}
             startingBalance={startingBalance}
             setStartingBalance={setStartingBalance}
+            balanceLocked={true}
             dailyProjections={dailyProjections}
             safeToSpendToday={safeToSpendToday}
             lowestProjectedBalance={lowestProjectedBalance}
@@ -885,6 +984,8 @@ export default function App() {
 
         {activeTab === 'entry' && (
           <DailyEntryView
+            key={shoppingUserId || 'signed-out'}
+            onUpdateTransaction={handleUpdateTransaction}
             theme={theme}
             geminiApiKey={geminiApiKey}
             onAddTransaction={handleAddTransaction}
@@ -910,6 +1011,7 @@ export default function App() {
             currentBg={currentBg}
             setCurrentBg={setCurrentBg}
             selectedCurrency={selectedCurrency}
+            currencyLocked={!!financialAccount}
             setSelectedCurrency={setSelectedCurrency}
             startingBalance={startingBalance}
             setStartingBalance={setStartingBalance}
@@ -1370,7 +1472,7 @@ function PartnerModal({ theme, household, setHousehold, userProfile, onClose }) 
   );
 }
 
-function CashflowView({ theme, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
+function CashflowView({ theme, balanceLocked, startingBalance, setStartingBalance, dailyProjections, safeToSpendToday, lowestProjectedBalance, projectionDays, setProjectionDays, cashflowPlans, formatCurrency, onOpenAddPlan, onEditPlan, onDeletePlan }) {
   const [filterType, setFilterType] = useState('all');
   const [isBalanceEditing, setIsBalanceEditing] = useState(false);
   const [tempBalance, setTempBalance] = useState(startingBalance);
@@ -1407,7 +1509,7 @@ function CashflowView({ theme, startingBalance, setStartingBalance, dailyProject
           ) : (
             <div className="flex items-baseline justify-between mt-1">
               <span className="text-2xl font-black">{formatCurrency(startingBalance)}</span>
-              <button onClick={() => { setTempBalance(startingBalance); setIsBalanceEditing(true); }} className={`text-xs opacity-60 hover:opacity-100 flex items-center gap-1 ${theme.textAccent}`}><Edit3 className="w-3.5 h-3.5" /> Edit</button>
+              <button disabled={balanceLocked} title={balanceLocked ? 'Calculated from saved transactions' : undefined} onClick={() => { setTempBalance(startingBalance); setIsBalanceEditing(true); }} className={`text-xs opacity-60 hover:opacity-100 flex items-center gap-1 ${theme.textAccent}`}><Edit3 className="w-3.5 h-3.5" /> Edit</button>
             </div>
           )}
         </div>
@@ -1542,9 +1644,9 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
     });
   };
 
-  const handleBuyNow = (wish) => {
-    onAddTransaction({
-      id: 'tx-' + Date.now(),
+  const handleBuyNow = async (wish) => {
+    const saved = await onAddTransaction({
+      id: crypto.randomUUID(),
       title: wish.title,
       amount: wish.price,
       type: 'Expense',
@@ -1552,7 +1654,7 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
       merchant: 'Wishlist Purchase',
       date: new Date().toISOString().split('T')[0]
     });
-    handleDeleteWish(wish.id);
+    if (saved) handleDeleteWish(wish.id);
   };
 
   return (
@@ -1850,7 +1952,7 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
 
   const convertListToTransaction = (list) => {
     onAddTransaction({
-      id: 'tx-' + Date.now(),
+      id: crypto.randomUUID(),
       title: list.title,
       amount: Number(list.totalEstimated) || 0,
       type: 'Expense',
@@ -1928,27 +2030,33 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
   );
 }
 
-function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, formatCurrency, onDeleteTransaction }) {
+function DailyEntryView({ theme, geminiApiKey, onAddTransaction, onUpdateTransaction, transactions, formatCurrency, onDeleteTransaction }) {
   const [formData, setFormData] = useState({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleManualSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.title || !formData.amount) return;
-
-    onAddTransaction({
-      id: 'tx-' + Date.now(),
-      title: formData.title,
-      amount: Number(formData.amount),
-      type: formData.type,
-      category: formData.category,
-      merchant: formData.merchant || 'General Merchant',
-      date: formData.date
-    });
-
+  const [editingId, setEditingId] = useState(null);
+  const [isSavingTransaction, setIsSavingTransaction] = useState(false);
+  const [transactionMessage, setTransactionMessage] = useState('');
+  const requestId = useRef(null);
+  const submitBusy = useRef(false);
+  const resetTransactionForm = () => {
+    setEditingId(null); requestId.current = null;
     setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
+  };
+  const handleManualSubmit = async (e) => {
+    e.preventDefault();
+    if (submitBusy.current) return;
+    submitBusy.current = true; setIsSavingTransaction(true); setTransactionMessage('');
+    requestId.current ||= crypto.randomUUID();
+    try {
+      const saved = await (editingId ? onUpdateTransaction : onAddTransaction)({
+        ...formData, id: editingId || requestId.current, amount: Number(formData.amount)
+      });
+      if (saved) { resetTransactionForm(); setTransactionMessage('Transaction saved.'); }
+      else setTransactionMessage('Not saved. Review the error above and retry.');
+    } finally { submitBusy.current = false; setIsSavingTransaction(false); }
   };
 
   const handleReceiptScan = async () => {
@@ -1974,7 +2082,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
       const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
 
       onAddTransaction({
-        id: 'tx-' + Date.now(),
+        id: crypto.randomUUID(),
         title: parsed.title || 'Scanned Receipt',
         amount: Number(parsed.amount) || 0,
         type: 'Expense',
@@ -2004,6 +2112,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
         <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4`}>
           <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Manual Transaction Entry</h3>
           <form onSubmit={handleManualSubmit} className="space-y-3">
+            <fieldset disabled={isSavingTransaction} className="space-y-3">
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Transaction Type</label>
               <div className="grid grid-cols-2 gap-2 mt-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
@@ -2014,7 +2123,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
 
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Amount</label>
-              <input type="number" placeholder="e.g. 4500" required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none" />
+              <input type="number" min="0.01" step="0.01" placeholder="e.g. 4500" required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none" />
             </div>
 
             <div>
@@ -2040,7 +2149,10 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
               <input type="text" placeholder="e.g. Target, Shell" value={formData.merchant} onChange={(e) => setFormData({ ...formData, merchant: e.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none" />
             </div>
 
-            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>Add Transaction</button>
+            <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>{isSavingTransaction ? 'Saving...' : editingId ? 'Save Changes' : 'Add Transaction'}</button>
+            {editingId && <button type="button" onClick={resetTransactionForm} className="text-xs underline">Cancel edit</button>}
+            </fieldset>
+            {transactionMessage && <p role="status" className="text-xs">{transactionMessage}</p>}
           </form>
         </div>
       </div>
@@ -2067,7 +2179,13 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, transactions, f
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`font-mono font-bold ${t.type === 'Income' ? 'text-emerald-400' : 'text-slate-200'}`}>{t.type === 'Income' ? '+' : '-'}{formatCurrency(t.amount)}</span>
-                    <button onClick={() => onDeleteTransaction(t.id)} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button type="button" aria-label={'Edit ' + t.title} disabled={isSavingTransaction} onClick={() => { setEditingId(t.id); setFormData({ ...t, amount: String(t.amount), merchant: t.merchant || '' }); setTransactionMessage(''); }} className="text-slate-400 hover:text-white p-1"><Edit3 className="w-3.5 h-3.5" /></button>
+                    <button type="button" aria-label={'Delete ' + t.title} disabled={isSavingTransaction} onClick={async () => {
+                      if (submitBusy.current) return;
+                      submitBusy.current = true; setIsSavingTransaction(true);
+                      try { if (await onDeleteTransaction(t.id)) { if (editingId === t.id) resetTransactionForm(); setTransactionMessage('Transaction deleted.'); } }
+                      finally { submitBusy.current = false; setIsSavingTransaction(false); }
+                    }} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
               );
@@ -2184,7 +2302,7 @@ function AnalyticsView({ theme, transactions, formatCurrency }) {
   );
 }
 
-function SettingsView({ theme, currentTheme, setCurrentTheme, currentBg, setCurrentBg, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, household, onOpenPartnerModal, pushEnabled, onRequestPush, onPopFunFact, userProfile, onOpenAuthModal }) {
+function SettingsView({ theme, currencyLocked, currentTheme, setCurrentTheme, currentBg, setCurrentBg, selectedCurrency, setSelectedCurrency, startingBalance, setStartingBalance, setShowAdminModal, household, onOpenPartnerModal, pushEnabled, onRequestPush, onPopFunFact, userProfile, onOpenAuthModal }) {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       
@@ -2235,7 +2353,7 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, currentBg, setCurr
 
       <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
         <h3 className="text-base font-bold flex items-center gap-2"><Globe className={`w-5 h-5 ${theme.textAccent}`} /> Default Currency (ISO Standard)</h3>
-        <select value={selectedCurrency} onChange={(e) => setSelectedCurrency(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none">
+        <select disabled={currencyLocked} value={selectedCurrency} onChange={(e) => setSelectedCurrency(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none">
           {WORLD_CURRENCIES.map(c => (
             <option key={c.code} value={c.code}>{c.code} - {c.name} ({c.symbol})</option>
           ))}
@@ -2274,7 +2392,7 @@ function SettingsView({ theme, currentTheme, setCurrentTheme, currentBg, setCurr
 
       <div className={`${theme.cardBg} border ${theme.cardBorder} rounded-2xl p-6 space-y-4`}>
         <h3 className="text-base font-bold flex items-center gap-2"><DollarSign className={`w-5 h-5 ${theme.textAccent}`} /> Starting Balance</h3>
-        <input type="number" value={startingBalance} onChange={(e) => setStartingBalance(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none" />
+        <input type="number" readOnly value={startingBalance} onChange={(e) => setStartingBalance(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none" />
       </div>
 
       <div className="text-right pt-2">
@@ -2328,3 +2446,28 @@ function PlanModal({ theme, plan, onSave, onClose }) {
   );
 }
 
+
+function FinancialAccountSetup({ theme, account, loading, error, onRetry, onCreate }) {
+  const [draft, setDraft] = useState({ name: 'Personal account', currency: 'RSD', opening_balance: '', opening_date: localDate() });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const busy = useRef(false);
+  if (loading) return <p role="status">Loading your financial account...</p>;
+  if (error) return <p role="alert">Could not load account: {error} <button type="button" onClick={onRetry} className="underline">Retry</button></p>;
+  if (account) return <p className="text-xs opacity-60">{account.name} · {account.currency} · Opening balance {account.opening_balance} before {account.opening_date}. Current balance includes saved transactions from that date.</p>;
+  return <form className="border border-slate-700 rounded-2xl p-5 space-y-3" onSubmit={async e => {
+    e.preventDefault(); if (busy.current) return; busy.current = true; setSaving(true); setMessage('');
+    try { await onCreate(draft); } catch (e) { setMessage(e.message); } finally { busy.current = false; setSaving(false); }
+  }}>
+    <h3 className="font-bold">Set up your saved balance</h3>
+    <p className="text-sm opacity-70">Enter the balance immediately before your opening date. Only confirmed transactions from that date change this balance. Old browser data is not imported automatically.</p>
+    <fieldset disabled={saving} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <label className="text-xs">Account name<input required value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} className="block w-full bg-slate-950 border border-slate-700 p-2 rounded-lg" /></label>
+      <label className="text-xs">Currency<select value={draft.currency} onChange={e => setDraft({ ...draft, currency: e.target.value })} className="block w-full bg-slate-950 border border-slate-700 p-2 rounded-lg">{WORLD_CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}</select></label>
+      <label className="text-xs">Opening balance<input required type="number" step={draft.currency === 'JPY' ? '1' : '0.01'} value={draft.opening_balance} onChange={e => setDraft({ ...draft, opening_balance: e.target.value })} className="block w-full bg-slate-950 border border-slate-700 p-2 rounded-lg" /></label>
+      <label className="text-xs">Opening date<input required type="date" max={localDate()} value={draft.opening_date} onChange={e => setDraft({ ...draft, opening_date: e.target.value })} className="block w-full bg-slate-950 border border-slate-700 p-2 rounded-lg" /></label>
+      <button type="submit" className={'p-2 rounded-lg font-bold ' + theme.btnPrimary}>{saving ? 'Saving...' : 'Save opening balance'}</button>
+    </fieldset>
+    {message && <p role="alert">{message}</p>}
+  </form>;
+}
