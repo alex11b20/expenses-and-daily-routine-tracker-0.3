@@ -217,6 +217,12 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+function transactionFromRow(row) {
+  return { id: row.id, title: row.title, amount: Number(row.amount),
+    type: row.transaction_type, category: row.category,
+    date: row.transaction_date, merchant: row.merchant_name };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('cashflow');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -248,10 +254,14 @@ export default function App() {
     return saved !== null ? Number(saved) : 0;
   });
 
-  const [transactions, setTransactions] = useState(() => {
-    const saved = localStorage.getItem('sb_transactions');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Legacy browser records are preserved for an explicit import, never auto-loaded.
+  const [transactions, setTransactions] = useState([]);
+  const [transactionError, setTransactionError] = useState('');
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionReload, setTransactionReload] = useState(0);
+  const sessionIdentity = useRef({ userId: null, generation: 0 });
+  const transactionRevision = useRef(0);
+  const transactionBusy = useRef(false);
 
   const [cashflowPlans, setCashflowPlans] = useState(() => {
     const saved = localStorage.getItem('sb_cashflow_plans');
@@ -300,7 +310,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('fb_bg_style', currentBg); }, [currentBg]);
   useEffect(() => { localStorage.setItem('fb_currency', selectedCurrency); }, [selectedCurrency]);
   useEffect(() => { localStorage.setItem('sb_starting_balance', startingBalance.toString()); }, [startingBalance]);
-  useEffect(() => { localStorage.setItem('sb_transactions', JSON.stringify(transactions)); }, [transactions]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
   useEffect(() => { localStorage.setItem('sb_wishlist_items', JSON.stringify(wishlistItems)); }, [wishlistItems]);
   useEffect(() => { localStorage.setItem('sb_household', JSON.stringify(household)); }, [household]);
@@ -309,33 +318,34 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sb_notifications_list', JSON.stringify(notifications)); }, [notifications]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setShoppingUserId(session?.user?.id || null);
-      if (session?.user) {
-        setUserProfile({
-          loggedIn: true,
-          email: session.user.email,
-          nickname: session.user.user_metadata?.nickname || session.user.email.split('@')[0],
-          userId: session.user.id
-        });
+    let disposed = false;
+    let authEventReceived = false;
+    const applySession = (session) => {
+      if (disposed) return;
+      const user = session?.user;
+      const userId = user?.id || null;
+      if (sessionIdentity.current.userId !== userId) {
+        sessionIdentity.current = { userId, generation: sessionIdentity.current.generation + 1 };
+        transactionRevision.current += 1;
+        setTransactions([]);
+        setTransactionError('');
+        setShoppingLists([]);
       }
-    });
-
+      setShoppingUserId(userId);
+      setUserProfile(user ? {
+        loggedIn: true, email: user.email || '',
+        nickname: user.user_metadata?.nickname || user.email?.split('@')[0] || '',
+        userId
+      } : { loggedIn: false, email: '', nickname: '', userId: '' });
+    };
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setShoppingUserId(session?.user?.id || null);
-      if (session?.user) {
-        setUserProfile({
-          loggedIn: true,
-          email: session.user.email,
-          nickname: session.user.user_metadata?.nickname || session.user.email.split('@')[0],
-          userId: session.user.id
-        });
-      } else {
-        setUserProfile({ loggedIn: false, email: '', nickname: '', userId: '' });
-      }
+      authEventReceived = true;
+      applySession(session);
     });
-
-    return () => subscription.unsubscribe();
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!authEventReceived) applySession(error ? null : data?.session);
+    }).catch(() => { if (!authEventReceived) applySession(null); });
+    return () => { disposed = true; subscription.unsubscribe(); };
   }, []);
 
   // Load grocery lists only after Supabase confirms the active session.
@@ -384,39 +394,40 @@ export default function App() {
     return () => { cancelled = true; };
   }, [shoppingUserId]);
 
-  // Povlačenje transakcija iz Supabase baze nakon uspešne prijave
   useEffect(() => {
-    const fetchCloudTransactions = async () => {
-      if (userProfile.loggedIn) {
-        try {
-          const { data, error } = await supabase
-            .from('transactions')
-            .select('*')
-            .order('transaction_date', { ascending: false });
+    let cancelled = false;
+    const identity = sessionIdentity.current;
+    const revision = transactionRevision.current;
+    const isCurrent = () => !cancelled && sessionIdentity.current === identity && transactionRevision.current === revision;
+    setTransactionsLoading(!!shoppingUserId);
+    setTransactionError('');
+    if (!shoppingUserId) { setTransactions([]); return; }
 
+    const loadTransactions = async () => {
+      try {
+        const rows = [];
+        // Supabase caps each response; page so older transactions remain included.
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await supabase.from('transactions')
+            .select('id, title, amount, transaction_type, category, transaction_date, merchant_name')
+            .eq('user_id', shoppingUserId)
+            .order('transaction_date', { ascending: false }).order('id', { ascending: false })
+            .range(offset, offset + 499);
           if (error) throw error;
-
-          if (data && data.length > 0) {
-            // Mapiranje cloud formata nazad u React format
-            const formatted = data.map(t => ({
-              id: t.id,
-              title: t.title,
-              amount: Number(t.amount),
-              type: t.transaction_type,
-              category: t.category,
-              date: t.transaction_date,
-              merchant: t.merchant_name
-            }));
-            setTransactions(formatted);
-          }
-        } catch (err) {
-          console.error('Greška pri povlačenju transakcija:', err);
+          if (!isCurrent()) return;
+          rows.push(...(data || []));
+          if (!data || data.length < 500) break;
         }
+        if (isCurrent()) setTransactions(rows.map(transactionFromRow));
+      } catch (error) {
+        if (isCurrent()) setTransactionError('Could not load transactions: ' + error.message);
+      } finally {
+        if (isCurrent()) setTransactionsLoading(false);
       }
     };
-
-    fetchCloudTransactions();
-  }, [userProfile.loggedIn]);
+    loadTransactions();
+    return () => { cancelled = true; };
+  }, [shoppingUserId, transactionReload]);
 
   const pushNotification = (title, body, type = 'info') => {
     const greetingName = userProfile.nickname ? `, ${userProfile.nickname}` : '';
@@ -824,6 +835,10 @@ export default function App() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {transactionsLoading && <p role="status" className="text-sm opacity-70">Loading saved transactions...</p>}
+        {transactionError && <div role="alert" className="text-sm text-rose-400">
+          {transactionError} <button type="button" onClick={() => setTransactionReload(n => n + 1)} className="underline">Retry</button>
+        </div>}
         {activeTab === 'cashflow' && (
           <CashflowView
             theme={theme}
@@ -2312,3 +2327,4 @@ function PlanModal({ theme, plan, onSave, onClose }) {
     </div>
   );
 }
+
