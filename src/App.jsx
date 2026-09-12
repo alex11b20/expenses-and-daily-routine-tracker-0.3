@@ -261,10 +261,7 @@ export default function App() {
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
   // User Profile State (Email + Password + Nickname)
-  const [userProfile, setUserProfile] = useState(() => {
-    const saved = localStorage.getItem('sb_user_profile');
-    return saved ? JSON.parse(saved) : { loggedIn: false, email: '', nickname: '', userId: '' };
-  });
+  const [userProfile, setUserProfile] = useState({ loggedIn: false, email: '', nickname: '', userId: '' });
 
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fb_theme') || 'electric-blue');
   const theme = THEMES[currentTheme] || THEMES['electric-blue'];
@@ -335,7 +332,6 @@ export default function App() {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
 
-  useEffect(() => { localStorage.setItem('sb_user_profile', JSON.stringify(userProfile)); }, [userProfile]);
   useEffect(() => { localStorage.setItem('fb_theme', currentTheme); }, [currentTheme]);
   useEffect(() => { localStorage.setItem('fb_bg_style', currentBg); }, [currentBg]);
   useEffect(() => { localStorage.setItem('fb_currency', selectedCurrency); }, [selectedCurrency]);
@@ -1100,12 +1096,13 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
 
         if (error) throw error;
 
-        setUserProfile({
-          loggedIn: true,
-          email: email,
-          nickname: finalNickname,
-          userId: data.user?.id || 'usr-' + Date.now().toString(36)
-        });
+        if (!data.session) {
+          setAuthError('Check your email to confirm your account, then sign in.');
+          setIsRegisterMode(false);
+          setPassword('');
+          return;
+        }
+        // The auth subscription sets identity only after Supabase confirms a session.
 
         pushNotification(
           `Welcome to Stashly, ${finalNickname}! 🚀`,
@@ -1123,12 +1120,7 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
         const user = data.user;
         const userNick = user?.user_metadata?.nickname || email.split('@')[0];
 
-        setUserProfile({
-          loggedIn: true,
-          email: user.email,
-          nickname: userNick,
-          userId: user.id
-        });
+        // The auth subscription updates the account and clears previous-session data.
 
         pushNotification(
           `Welcome back, ${userNick}! 🚀`,
@@ -1144,9 +1136,14 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUserProfile({ loggedIn: false, email: '', nickname: '', userId: '' });
-    onClose();
+    if (loading) return;
+    setLoading(true); setAuthError('');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      onClose();
+    } catch (error) { setAuthError('Could not sign out: ' + error.message); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -1191,6 +1188,7 @@ function AuthModal({ theme, userProfile, setUserProfile, onClose, pushNotificati
 
             <button
               onClick={handleSignOut}
+              disabled={loading}
               className="w-full py-2.5 rounded-xl font-semibold text-xs border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 flex items-center justify-center gap-2"
             >
               <LogOut className="w-4 h-4" /> Sign Out of Account
@@ -2031,7 +2029,7 @@ function ShoppingListsView({ theme, geminiApiKey, selectedCurrency, shoppingList
 }
 
 function DailyEntryView({ theme, geminiApiKey, onAddTransaction, onUpdateTransaction, transactions, formatCurrency, onDeleteTransaction }) {
-  const [formData, setFormData] = useState({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
+  const [formData, setFormData] = useState({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: localDate() });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef(null);
@@ -2043,7 +2041,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, onUpdateTransac
   const submitBusy = useRef(false);
   const resetTransactionForm = () => {
     setEditingId(null); requestId.current = null;
-    setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: new Date().toISOString().split('T')[0] });
+    setFormData({ title: '', amount: '', type: 'Expense', category: 'Food', merchant: '', date: localDate() });
   };
   const handleManualSubmit = async (e) => {
     e.preventDefault();
@@ -2088,7 +2086,7 @@ function DailyEntryView({ theme, geminiApiKey, onAddTransaction, onUpdateTransac
         type: 'Expense',
         category: parsed.category || 'Food',
         merchant: parsed.merchant || 'Store',
-        date: parsed.date || new Date().toISOString().split('T')[0],
+        date: parsed.date || localDate(),
         items: parsed.items || []
       });
       setSelectedFiles([]);
