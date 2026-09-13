@@ -386,41 +386,16 @@ export default function App() {
     setShoppingError('');
     if (!shoppingUserId) return;
 
+    const identity = sessionIdentity.current;
+    const isCurrent = () => !cancelled && sessionIdentity.current === identity;
     const loadShoppingLists = async () => {
       try {
-        const { data: lists, error } = await supabase
-          .from('shopping_lists')
-          .select(`
-            id, title, category, estimated_total, currency, created_at,
-            shopping_list_items (
-              id, item_name, quantity, estimated_price, checked
-            )
-          `)
-          .eq('user_id', shoppingUserId)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (cancelled) return;
-
-        setShoppingLists((lists || []).map(list => ({
-          id: list.id,
-          title: list.title,
-          category: list.category,
-          totalEstimated: list.estimated_total == null ? null : Number(list.estimated_total),
-          currency: list.currency,
-          date: list.created_at?.split('T')[0],
-          estimatedItems: (list.shopping_list_items || []).map(item => ({
-            id: item.id,
-            item: item.item_name,
-            qty: item.quantity,
-            estimatedPrice: item.estimated_price == null ? null : Number(item.estimated_price),
-            checked: item.checked
-          }))
-        })));
+        const lists = await loadSavedGroceries(supabase, shoppingUserId, isCurrent);
+        if (lists && isCurrent()) setShoppingLists(lists);
       } catch (error) {
-        if (!cancelled) setShoppingError(error.message || 'Could not load grocery lists.');
+        if (isCurrent()) setShoppingError(error.message || 'Could not load grocery lists.');
       } finally {
-        if (!cancelled) setShoppingLoading(false);
+        if (isCurrent()) setShoppingLoading(false);
       }
     };
 
@@ -1849,6 +1824,50 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
   );
 }
 
+function compareGroceryItems(a, b) {
+  const left = a.item.toLowerCase(), right = b.item.toLowerCase();
+  return (left < right ? -1 : left > right ? 1 : 0) || a.id.localeCompare(b.id);
+}
+
+async function loadSavedGroceries(client, userId, isCurrent) {
+  // Keyset pagination also handles an API row cap smaller than our requested page size.
+  const readAll = async (table, fields) => {
+    const rows = [];
+    let after = null;
+    while (isCurrent()) {
+      let query = client.from(table).select(fields).eq('user_id', userId)
+        .order('id', { ascending: true }).limit(250);
+      if (after) query = query.gt('id', after);
+      const { data, error } = await query;
+      if (!isCurrent()) return null;
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error('Grocery loading returned an invalid response.');
+      if (!data.length) return rows;
+      const next = data[data.length - 1].id;
+      if (!next || (after && next <= after)) throw new Error('Grocery loading could not advance. Please retry.');
+      rows.push(...data);
+      after = next;
+    }
+    return null;
+  };
+  const lists = await readAll('shopping_lists', 'id, title, category, estimated_total, currency, created_at');
+  if (!lists || !isCurrent()) return null;
+  if (!lists.length) return [];
+  const items = await readAll('shopping_list_items', 'id, list_id, item_name, quantity, estimated_price, checked');
+  if (!items || !isCurrent()) return null;
+  const grouped = new Map(lists.map(list => [list.id, []]));
+  for (const item of items) {
+    // Ignore children whose parent is no longer visible (e.g. a concurrently deleted list).
+    grouped.get(item.list_id)?.push({ id: item.id, item: item.item_name, qty: item.quantity,
+      estimatedPrice: item.estimated_price == null ? null : Number(item.estimated_price), checked: item.checked });
+  }
+  return lists.sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))
+    .map(list => ({ id: list.id, title: list.title, category: list.category,
+      totalEstimated: list.estimated_total == null ? null : Number(list.estimated_total),
+      currency: list.currency, date: list.created_at?.split('T')[0],
+      estimatedItems: grouped.get(list.id).sort(compareGroceryItems) }));
+}
+
 async function persistGroceryChange(client, userId, change) {
   const { data: { user }, error: authError } = await client.auth.getUser();
   if (authError) throw authError;
@@ -1939,7 +1958,7 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
         estimatedItems: savedItems.map(item => ({
           id: item.id, item: item.item_name, qty: item.quantity,
           estimatedPrice: null, checked: item.checked
-        }))
+        })).sort(compareGroceryItems)
       }, ...prev]);
       setListTitle('');
       setRawText('');
@@ -2034,6 +2053,7 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                 </div>}
                 {list.summaryNote && <p className="text-xs opacity-70 italic bg-slate-950 p-2.5 rounded-xl border border-slate-800">{list.summaryNote}</p>}
                 <div className="space-y-1">
+                  <p className="text-[10px] opacity-50">Items sorted alphabetically</p>
                   {list.estimatedItems?.map((item, idx) => (
                     <div key={item.id || idx} className="flex justify-between text-xs py-1 border-b border-slate-800/40">
                       <label className="flex items-center gap-2">
