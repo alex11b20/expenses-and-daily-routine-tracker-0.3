@@ -1905,13 +1905,33 @@ async function persistGroceryChange(client, userId, change) {
     if (data?.id !== change.listId || data.title !== title) throw new Error('List title change was not confirmed.');
     return data;
   }
-  if (change.kind === 'editItem') {
+  if (change.kind === 'deleteItem') {
+    const { data, error } = await client.from('shopping_list_items').delete()
+      .eq('id', change.itemId).eq('list_id', change.listId).eq('user_id', userId).select('id').single();
+    if (error) throw error;
+    if (data?.id !== change.itemId) throw new Error('Item deletion was not confirmed.');
+    return data;
+  }
+  if (change.kind === 'editItem' || change.kind === 'addItem') {
     const itemName = String(change.item || '').trim();
     const quantityText = String(change.qty).trim();
     const quantity = Number(quantityText);
     if (!itemName || itemName.length > 300) throw new Error('Enter an item name of 1–300 characters.');
     if (!/^\d+(\.\d{1,3})?$/.test(quantityText) || !Number.isFinite(quantity) || quantity <= 0 || quantity > 1000000)
       throw new Error('Quantity must be greater than zero, up to 1,000,000, with at most 3 decimal places.');
+    if (change.kind === 'addItem') {
+      let { data, error } = await client.from('shopping_list_items').insert({ id: change.itemId, list_id: change.listId,
+        user_id: userId, item_name: itemName, quantity, estimated_price: null, checked: false })
+        .select('id, item_name, quantity, checked, estimated_price').single();
+      if (error?.code === '23505') {
+        ({ data, error } = await client.from('shopping_list_items').select('id, item_name, quantity, checked, estimated_price')
+          .eq('id', change.itemId).eq('list_id', change.listId).eq('user_id', userId).single());
+      }
+      if (error) throw error;
+      if (data?.id !== change.itemId || data.item_name !== itemName || Number(data.quantity) !== quantity)
+        throw new Error('Item save was not confirmed. Reload to review it before trying different contents.');
+      return data;
+    }
     const { data, error } = await client.from('shopping_list_items').update({ item_name: itemName, quantity })
       .eq('id', change.itemId).eq('list_id', change.listId).eq('user_id', userId)
       .select('id, item_name, quantity, checked, estimated_price').single();
@@ -1937,6 +1957,7 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [groceryEdit, setGroceryEdit] = useState(null);
+  const [pendingItemDelete, setPendingItemDelete] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
   const saveInProgress = useRef(false);
   const listRequestId = useRef(null);
@@ -2008,13 +2029,20 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
         ? prev.filter(list => list.id !== change.listId)
         : prev.map(list => list.id !== change.listId ? list : change.kind === 'rename'
           ? { ...list, title: saved.title }
+          : change.kind === 'deleteItem' ? { ...list, estimatedItems: list.estimatedItems.filter(item => item.id !== change.itemId) }
+          : change.kind === 'addItem' ? { ...list, estimatedItems: [
+              ...list.estimatedItems.filter(item => item.id !== saved.id),
+              { id: saved.id, item: saved.item_name, qty: Number(saved.quantity), checked: saved.checked,
+                estimatedPrice: saved.estimated_price == null ? null : Number(saved.estimated_price) }
+            ].sort(compareGroceryItems) }
           : { ...list, estimatedItems: list.estimatedItems.map(item => item.id !== change.itemId ? item
               : change.kind === 'editItem' ? { ...item, item: saved.item_name, qty: Number(saved.quantity),
                   checked: saved.checked, estimatedPrice: saved.estimated_price == null ? null : Number(saved.estimated_price) }
               : { ...item, checked: saved.checked }).sort(compareGroceryItems) }));
-      if (change.kind === 'rename' || change.kind === 'editItem') setGroceryEdit(null);
+      if (['rename', 'editItem', 'addItem'].includes(change.kind)) setGroceryEdit(null);
+      setPendingItemDelete(null);
       setPendingDelete(null);
-      setSaveMessage(change.kind === 'delete' ? 'List deleted.' : change.kind === 'rename' ? 'List title saved.' : 'Item saved.');
+      setSaveMessage(change.kind === 'delete' ? 'List deleted.' : change.kind === 'rename' ? 'List title saved.' : change.kind === 'deleteItem' ? 'Item deleted.' : 'Item saved.');
     } catch (error) {
       if (activeView.current) setSaveMessage('Could not save change: ' + error.message);
     } finally {
@@ -2084,7 +2112,7 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                         onChange={event => setGroceryEdit({ ...groceryEdit, [groceryEdit.kind === 'rename' ? 'title' : 'item']: event.target.value })}
                         className="block w-full bg-slate-950 border border-slate-700 rounded-lg p-2 mt-1" />
                     </label>
-                    {groceryEdit.kind === 'editItem' && <label className="block text-xs">Quantity
+                    {groceryEdit.kind !== 'rename' && <label className="block text-xs">Quantity
                       <input aria-label="Edit item quantity" type="number" min="0.001" max="1000000" step="0.001" required value={groceryEdit.qty}
                         onChange={event => setGroceryEdit({ ...groceryEdit, qty: event.target.value })} className="block w-full bg-slate-950 border border-slate-700 rounded-lg p-2 mt-1" />
                     </label>}
@@ -2099,7 +2127,16 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                 </div>}
                 {list.summaryNote && <p className="text-xs opacity-70 italic bg-slate-950 p-2.5 rounded-xl border border-slate-800">{list.summaryNote}</p>}
                 <div className="space-y-1">
-                  <p className="text-[10px] opacity-50">Items sorted alphabetically</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] opacity-50">Items sorted alphabetically</p>
+                    <button type="button" aria-label={`Add item to: ${list.title}`} disabled={isSaving || loading || !!loadError}
+                      onClick={() => setGroceryEdit({ kind: 'addItem', listId: list.id, itemId: crypto.randomUUID(), item: '', qty: '1' })} className="text-xs underline">Add item</button>
+                  </div>
+                  {pendingItemDelete?.listId === list.id && <div role="alert" className="text-xs space-x-3 py-2">
+                    <span>Permanently delete {pendingItemDelete.item}?</span>
+                    <button disabled={isSaving} onClick={() => handleChange({ ...pendingItemDelete, kind: 'deleteItem' })} className="underline text-rose-400">Delete item permanently</button>
+                    <button disabled={isSaving} onClick={() => setPendingItemDelete(null)} className="underline">Keep item</button>
+                  </div>}
                   {list.estimatedItems?.map((item, idx) => (
                     <div key={item.id || idx} className="flex justify-between text-xs py-1 border-b border-slate-800/40">
                       <label className="flex items-center gap-2">
@@ -2111,6 +2148,8 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                         <span className="font-mono opacity-80">{item.estimatedPrice == null ? '—' : formatCurrency(item.estimatedPrice)}</span>
                         <button type="button" aria-label={`Edit item: ${item.item}`} disabled={isSaving || !item.id}
                           onClick={() => setGroceryEdit({ kind: 'editItem', listId: list.id, itemId: item.id, item: item.item, qty: String(item.qty) })} className="underline">Edit</button>
+                        <button type="button" aria-label={`Delete item: ${item.item}`} disabled={isSaving || !item.id}
+                          onClick={() => setPendingItemDelete({ listId: list.id, itemId: item.id, item: item.item })} className="text-rose-400"><Trash2 className="w-3 h-3" /></button>
                       </div>
                     </div>
                   ))}
