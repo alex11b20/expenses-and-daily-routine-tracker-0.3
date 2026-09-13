@@ -301,10 +301,7 @@ export default function App() {
   const [shoppingReload, setShoppingReload] = useState(0);
   const [shoppingUserId, setShoppingUserId] = useState(null);
 
-  const [wishlistItems, setWishlistItems] = useState(() => {
-    const saved = localStorage.getItem('sb_wishlist_items');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Wishlist goals load from Supabase inside the session-keyed view.
 
   const [household, setHousehold] = useState(() => {
     const saved = localStorage.getItem('sb_household');
@@ -339,7 +336,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('fb_bg_style', currentBg); }, [currentBg]);
   useEffect(() => { localStorage.setItem('fb_currency', selectedCurrency); }, [selectedCurrency]);
   useEffect(() => { localStorage.setItem('sb_cashflow_plans', JSON.stringify(cashflowPlans)); }, [cashflowPlans]);
-  useEffect(() => { localStorage.setItem('sb_wishlist_items', JSON.stringify(wishlistItems)); }, [wishlistItems]);
+
   useEffect(() => { localStorage.setItem('sb_household', JSON.stringify(household)); }, [household]);
   useEffect(() => { localStorage.setItem('sb_gemini_key', geminiApiKey); }, [geminiApiKey]);
   useEffect(() => { localStorage.setItem('sb_push_enabled', pushEnabled ? 'true' : 'false'); }, [pushEnabled]);
@@ -936,9 +933,10 @@ export default function App() {
 
         {activeTab === 'wishlist' && (
           <WishlistView
+            key={shoppingUserId || 'signed-out'}
+            userId={shoppingUserId}
+            selectedCurrency={selectedCurrency}
             theme={theme}
-            wishlistItems={wishlistItems}
-            setWishlistItems={setWishlistItems}
             formatCurrency={formatCurrency}
             startingBalance={startingBalance}
             safeToSpendToday={safeToSpendToday}
@@ -1592,65 +1590,181 @@ function CashflowView({ theme, balanceLocked, startingBalance, setStartingBalanc
   );
 }
 
-function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, startingBalance, safeToSpendToday, onAddPlan, onAddTransaction }) {
-  const [formData, setFormData] = useState({ title: '', price: '', priority: 'Medium', category: 'Tech & Gadgets', notes: '' });
+function goalFromRow(row) {
+  return { ...row, price: Number(row.price), createdAt: row.created_at };
+}
 
-  const totalWishValuation = useMemo(() => {
-    return wishlistItems.reduce((acc, curr) => acc + Number(curr.price || 0), 0);
-  }, [wishlistItems]);
+async function legacyGoalId(userId, legacy) {
+  const key = JSON.stringify(['stashly-wishlist-import-v1',userId,legacy.id || legacy]);
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key)));
+  bytes[6] = (bytes[6] & 15) | 80; bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes.slice(0,16),value => value.toString(16).padStart(2,'0')).join('');
+  return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
+}
 
-  const handleAddWish = (e) => {
-    e.preventDefault();
-    if (!formData.title || !formData.price) return;
+function goalPayload(draft, currency) {
+  const title = String(draft.title || '').trim();
+  if (!title || title.length > 200) throw new Error('Enter a title of 1–200 characters.');
+  if (!WORLD_CURRENCIES.some(value => value.code === currency)) throw new Error('Choose a supported currency.');
+  const minor = moneyMinor(draft.price, currency);
+  if (minor <= 0n || Number(draft.price) > 9000000000000) throw new Error('Enter a positive goal amount within the supported range.');
+  if (!['High','Medium','Low'].includes(draft.priority)) throw new Error('Choose a priority.');
+  if (!['Tech & Gadgets','Fashion','Home & Furniture','Animals & Farm','Travel & Fun','Other'].includes(draft.category)) throw new Error('Choose a category.');
+  const notes = String(draft.notes || '');
+  if (notes.length > 2000) throw new Error('Notes must be at most 2,000 characters.');
+  const date = draft.target_date || null;
+  if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0,10) !== date))
+    throw new Error('Enter a valid target date as YYYY-MM-DD, or leave it blank.');
+  return { title, price: Number(minor) / (currency === 'JPY' ? 1 : 100), currency,
+    priority: draft.priority, category: draft.category, notes, target_date: date };
+}
 
-    setWishlistItems(prev => [
-      { id: 'wish-' + Date.now(), ...formData, price: Number(formData.price), createdAt: new Date().toISOString() },
-      ...prev
-    ]);
+function goalTotal(items, currency) {
+  const factor = currency === 'JPY' ? 1n : 100n;
+  const minor = items.filter(item => !item.archived_at && item.currency === currency)
+    .reduce((sum, item) => sum + moneyMinor(item.price, currency), 0n);
+  return (minor / factor).toLocaleString('en-US') + (factor === 100n ? '.' + String(minor % factor).padStart(2,'0') : '') + ' ' + currency;
+}
 
-    setFormData({ title: '', price: '', priority: 'Medium', category: 'Tech & Gadgets', notes: '' });
+async function saveWishlistGoal(client, userId, id, draft, currency, editing) {
+  const payload = goalPayload(draft, currency);
+  const { data: { user }, error: authError } = await client.auth.getUser();
+  if (authError) throw authError;
+  if (!user || user.id !== userId) throw new Error('Your session changed. Please sign in again.');
+  let query = client.from('wishlist_items');
+  query = editing ? query.update(payload).eq('id',id).eq('user_id',userId)
+    : query.insert({ id, user_id: userId, ...payload });
+  let { data, error } = await query.select('*').single();
+  if (!editing && error?.code === '23505') {
+    ({ data, error } = await client.from('wishlist_items').select('*').eq('id',id).eq('user_id',userId).single());
+  }
+  if (error) throw error;
+  if (data?.id !== id || Object.entries(payload).some(([key,value]) => key === 'price' ? Number(data[key]) !== value : data[key] !== value))
+    throw new Error('The goal save was not confirmed. Reload to review it.');
+  return goalFromRow(data);
+}
+
+async function archiveWishlistGoal(client, userId, id, archived) {
+  const { data: { user }, error: authError } = await client.auth.getUser();
+  if (authError) throw authError;
+  if (!user || user.id !== userId) throw new Error('Your session changed. Please sign in again.');
+  const { data, error } = await client.from('wishlist_items').update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id',id).eq('user_id',userId).select('*').single();
+  if (error) throw error;
+  if (data?.id !== id || !!data.archived_at !== archived) throw new Error('The goal change was not confirmed.');
+  return goalFromRow(data);
+}
+
+async function loadWishlistGoals(client, userId, isCurrent) {
+  const rows = []; let after = null;
+  while (isCurrent()) {
+    let query = client.from('wishlist_items').select('*').eq('user_id',userId).order('id',{ ascending:true }).limit(250);
+    if (after) query = query.gt('id',after);
+    const { data, error } = await query;
+    if (!isCurrent()) return null;
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error('Could not read saved goals.');
+    if (!data.length) return rows.sort((a,b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
+    const next = data[data.length-1].id;
+    if (!next || (after && next <= after)) throw new Error('Goal loading could not advance. Please retry.');
+    rows.push(...data.map(goalFromRow)); after = next;
+  }
+  return null;
+}
+
+function WishlistView({ theme, formatCurrency, safeToSpendToday, userId, selectedCurrency }) {
+  const emptyDraft = () => ({ title:'', price:'', priority:'Medium', category:'Tech & Gadgets', notes:'', target_date:'', currency:selectedCurrency });
+  const [formData, setFormData] = useState(emptyDraft);
+  const [goals, setGoals] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reload, setReload] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [legacyGoals] = useState(() => {
+    try { const value = JSON.parse(localStorage.getItem('sb_wishlist_items') || '[]'); return Array.isArray(value) ? value : []; }
+    catch { return []; }
+  });
+  const busyRef = useRef(false), requestId = useRef(null), active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  useEffect(() => {
+    let cancelled = false;
+    setGoals([]); setLoadError(''); setLoading(!!userId);
+    if (userId) loadWishlistGoals(supabase,userId,() => !cancelled).then(rows => {
+      if (!cancelled && rows) setGoals(rows);
+    }).catch(error => { if (!cancelled) setLoadError(error.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [userId,reload]);
+  const activeGoals = goals.filter(goal => !goal.archived_at);
+  const wishlistItems = goals.filter(goal => !!goal.archived_at === showArchived);
+  const totalWishValuation = goalTotal(activeGoals, selectedCurrency);
+  const highestWish = activeGoals.find(w => w.priority === 'High') || activeGoals[0];
+  const displayGoal = wish => goalTotal([{ ...wish, archived_at:null }],wish.currency);
+  const reset = () => { setFormData(emptyDraft()); setEditingId(null); requestId.current = null; };
+  const handleImport = async () => {
+    if (busyRef.current || loading || loadError) return;
+    busyRef.current = true; setBusy(true); setMessage('');
+    let imported = 0, failed = 0;
+    try {
+      for (const legacy of legacyGoals) {
+        if (!active.current) return;
+        try {
+          if (!legacy || typeof legacy !== 'object') throw new Error('Invalid older goal.');
+          const id = await legacyGoalId(userId,legacy);
+          const saved = await saveWishlistGoal(supabase,userId,id,{ ...legacy, target_date:legacy.target_date || null },legacy.currency || selectedCurrency,false);
+          if (!active.current) return;
+          setGoals(prev => [saved,...prev.filter(goal => goal.id !== saved.id)]); imported++;
+        } catch { failed++; }
+      }
+      if (active.current) setMessage(imported + ' goals imported or already saved.' + (failed ? ' ' + failed + ' could not be imported; browser originals are retained.' : ' Browser originals are retained.'));
+    } finally { busyRef.current = false; if (active.current) setBusy(false); }
   };
-
-  const handleDeleteWish = (id) => {
-    setWishlistItems(prev => prev.filter(w => w.id !== id));
+  const handleAddWish = async event => {
+    event.preventDefault();
+    if (busyRef.current || loading || loadError) return;
+    busyRef.current = true; setBusy(true); setMessage('');
+    try {
+      if (!requestId.current) requestId.current = crypto.randomUUID();
+      const saved = await saveWishlistGoal(supabase,userId,editingId || requestId.current,formData,editingId ? formData.currency : selectedCurrency,!!editingId);
+      if (!active.current) return;
+      setGoals(prev => [saved,...prev.filter(goal => goal.id !== saved.id)]); reset(); setMessage('Goal saved.');
+    } catch(error) { if (active.current) setMessage('Could not save goal: '+error.message); }
+    finally { busyRef.current = false; if (active.current) setBusy(false); }
   };
-
-  const handleConvertToPlan = (wish) => {
-    onAddPlan({
-      id: 'plan-' + Date.now(),
-      title: `Wish: ${wish.title}`,
-      amount: wish.price,
-      type: 'Expense',
-      category: 'Other',
-      frequency: 'Once',
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      isActive: true
-    });
-  };
-
-  const handleBuyNow = async (wish) => {
-    const saved = await onAddTransaction({
-      id: crypto.randomUUID(),
-      title: wish.title,
-      amount: wish.price,
-      type: 'Expense',
-      category: 'Other',
-      merchant: 'Wishlist Purchase',
-      date: new Date().toISOString().split('T')[0]
-    });
-    if (saved) handleDeleteWish(wish.id);
+  const handleArchive = async wish => {
+    if (busyRef.current || loading || loadError) return;
+    busyRef.current = true; setBusy(true); setMessage('');
+    try {
+      const saved = await archiveWishlistGoal(supabase,userId,wish.id,!wish.archived_at);
+      if (!active.current) return;
+      setGoals(prev => prev.map(goal => goal.id === saved.id ? saved : goal));
+      if (editingId === saved.id) reset();
+      setMessage(saved.archived_at ? 'Goal archived. You can restore it from Archived goals.' : 'Goal restored.');
+    } catch(error) { if (active.current) setMessage('Could not change goal: '+error.message); }
+    finally { busyRef.current = false; if (active.current) setBusy(false); }
   };
 
   return (
     <div className="space-y-6">
+      <p className="text-xs opacity-70">Goals guide future planning and do not reduce your current balance.</p>
+      {loading && <p role="status">Loading saved goals...</p>}
+      {loadError && <p role="alert">Could not load goals: {loadError} <button onClick={() => setReload(value => value + 1)} className="underline">Retry goals</button></p>}
+      {message && <p role="status" className="text-xs">{message}</p>}
+      {legacyGoals.length > 0 && <div className="text-xs border border-slate-700 rounded-xl p-3 space-y-2">
+        <p>{legacyGoals.length} older browser-only wishes found. Import only if they belong to your current login. Wishes without a currency will use {selectedCurrency}.</p>
+        <button disabled={busy || loading || !!loadError || !userId} onClick={handleImport} className="underline">Import browser wishes into this account</button>
+      </div>}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl`}>
           <div className="flex items-center justify-between opacity-60 mb-1">
             <span className="text-xs font-semibold uppercase">Total Wish List Cost</span>
             <Gift className={`w-4 h-4 ${theme.textAccent}`} />
           </div>
-          <p className="text-2xl font-black">{formatCurrency(totalWishValuation)}</p>
-          <p className="text-[10px] opacity-60 mt-1">{wishlistItems.length} future items on wishlist</p>
+          <p className="text-2xl font-black">{totalWishValuation}</p>
+          <p className="text-[10px] opacity-60 mt-1">{activeGoals.filter(w => w.currency === selectedCurrency).length} active goals in {selectedCurrency}</p>
         </div>
 
         <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl`}>
@@ -1668,18 +1782,19 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
             <Heart className="w-4 h-4 text-rose-400" />
           </div>
           <p className="text-lg font-bold truncate">
-            {wishlistItems.find(w => w.priority === 'High')?.title || (wishlistItems[0]?.title || 'None yet')}
+            {highestWish?.title || 'None yet'}
           </p>
           <span className="text-[10px] opacity-60">
-            {wishlistItems.length > 0 ? formatCurrency(wishlistItems.find(w => w.priority === 'High')?.price || wishlistItems[0]?.price) : 'Add your first wish below'}
+            {highestWish ? displayGoal(highestWish) : 'Add your first wish below'}
           </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={`${theme.cardBg} border ${theme.cardBorder} p-5 rounded-2xl space-y-4 lg:col-span-1`}>
-          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> Add Future Wish Item</h3>
+          <h3 className="text-sm font-bold flex items-center gap-2"><Plus className={`w-4 h-4 ${theme.textAccent}`} /> {editingId ? 'Edit Goal' : 'Add Future Wish Item'}</h3>
           <form onSubmit={handleAddWish} className="space-y-3">
+            <fieldset disabled={busy || loading || !!loadError || !userId} className="space-y-3">
             <div>
               <label className="text-[11px] font-semibold opacity-60 uppercase">Item Name</label>
               <input
@@ -1696,6 +1811,8 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
               <label className="text-[11px] font-semibold opacity-60 uppercase">Expected Price</label>
               <input
                 type="number"
+                step={(editingId ? formData.currency : selectedCurrency) === 'JPY' ? '1' : '0.01'}
+                min="0.01"
                 placeholder="e.g. 45000"
                 required
                 value={formData.price}
@@ -1746,22 +1863,29 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
               />
             </div>
 
+            <label className="block text-xs">Target date (optional)
+              <input aria-label="Goal target date" placeholder="YYYY-MM-DD" value={formData.target_date || ''} onChange={event => setFormData({ ...formData, target_date:event.target.value })} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl p-2" />
+            </label>
+            <p className="text-xs opacity-60">Currency: {editingId ? formData.currency : selectedCurrency}</p>
             <button type="submit" className={`w-full py-3 rounded-xl font-bold text-xs uppercase ${theme.btnPrimary}`}>
-              Add to Wish List
+              {busy ? 'Saving...' : editingId ? 'Save Goal' : 'Add to Wish List'}
             </button>
+            {editingId && <button type="button" onClick={reset} className="text-xs underline">Cancel goal edit</button>}
+            </fieldset>
           </form>
         </div>
 
         <div className="lg:col-span-2 space-y-3">
-          {wishlistItems.length === 0 ? (
+          <button onClick={() => setShowArchived(value => !value)} className="text-xs underline">{showArchived ? 'Show active goals' : 'Archived goals'}</button>
+          {!loading && !loadError && wishlistItems.length === 0 ? (
             <div className={`${theme.cardBg} border border-dashed border-slate-800 rounded-2xl p-12 text-center opacity-50 text-xs space-y-2`}>
               <Gift className="w-8 h-8 mx-auto opacity-40" />
-              <p className="font-bold">Your wish list is currently empty.</p>
+              <p className="font-bold">{showArchived ? 'No archived goals.' : 'Your wish list is currently empty.'}</p>
               <p>Add anything you plan to buy in the future to keep your cashflow clear until you're ready!</p>
             </div>
           ) : (
             wishlistItems.map(wish => {
-              const isAffordableNow = safeToSpendToday >= wish.price;
+              const isAffordableNow = !wish.archived_at && wish.currency === selectedCurrency && safeToSpendToday >= wish.price;
               return (
                 <div key={wish.id} className={`${theme.cardBg} border ${theme.cardBorder} p-4 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4`}>
                   <div className="space-y-1">
@@ -1781,37 +1905,20 @@ function WishlistView({ theme, wishlistItems, setWishlistItems, formatCurrency, 
                       )}
                     </div>
                     <h4 className="font-bold text-sm text-slate-100">{wish.title}</h4>
+                    {wish.target_date && <p className="text-xs opacity-60">Target: {wish.target_date}</p>}
                     {wish.notes && <p className="text-xs opacity-60 italic">{wish.notes}</p>}
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
                     <div className="text-left sm:text-right">
-                      <span className={`text-base font-black font-mono ${theme.textAccent}`}>{formatCurrency(wish.price)}</span>
+                      <span className={`text-base font-black font-mono ${theme.textAccent}`}>{displayGoal(wish)}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleConvertToPlan(wish)}
-                        title="Add to Planned Cashflow"
-                        className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-xs font-semibold flex items-center gap-1"
-                      >
-                        <Calendar className="w-3.5 h-3.5 text-blue-400" /> Plan
-                      </button>
-
-                      <button
-                        onClick={() => handleBuyNow(wish)}
-                        title="Log as Bought"
-                        className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 ${theme.btnPrimary}`}
-                      >
-                        <Check className="w-3.5 h-3.5" /> Buy
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteWish(wish.id)}
-                        className="p-2 text-slate-600 hover:text-rose-400"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {!wish.archived_at && <button disabled={busy || loading || !!loadError} aria-label={`Edit goal: ${wish.title}`}
+                        onClick={() => { setEditingId(wish.id); setFormData({ ...wish, price:String(wish.price) }); setMessage(''); }} className="p-2 text-xs underline">Edit</button>}
+                      <button disabled={busy || loading || !!loadError} aria-label={`${wish.archived_at ? 'Restore' : 'Archive'} goal: ${wish.title}`}
+                        onClick={() => handleArchive(wish)} className="p-2 text-xs underline">{wish.archived_at ? 'Restore' : 'Archive'}</button>
                     </div>
                   </div>
                 </div>
