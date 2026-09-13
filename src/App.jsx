@@ -1879,6 +1879,30 @@ async function persistGroceryChange(client, userId, change) {
     if (data?.id !== change.listId) throw new Error('List deletion was not confirmed.');
     return data;
   }
+  if (change.kind === 'rename') {
+    const title = String(change.title || '').trim();
+    if (!title || title.length > 200) throw new Error('Enter a list title of 1–200 characters.');
+    const { data, error } = await client.from('shopping_lists').update({ title })
+      .eq('id', change.listId).eq('user_id', userId).select('id, title').single();
+    if (error) throw error;
+    if (data?.id !== change.listId || data.title !== title) throw new Error('List title change was not confirmed.');
+    return data;
+  }
+  if (change.kind === 'editItem') {
+    const itemName = String(change.item || '').trim();
+    const quantityText = String(change.qty).trim();
+    const quantity = Number(quantityText);
+    if (!itemName || itemName.length > 300) throw new Error('Enter an item name of 1–300 characters.');
+    if (!/^\d+(\.\d{1,3})?$/.test(quantityText) || !Number.isFinite(quantity) || quantity <= 0 || quantity > 1000000)
+      throw new Error('Quantity must be greater than zero, up to 1,000,000, with at most 3 decimal places.');
+    const { data, error } = await client.from('shopping_list_items').update({ item_name: itemName, quantity })
+      .eq('id', change.itemId).eq('list_id', change.listId).eq('user_id', userId)
+      .select('id, item_name, quantity, checked, estimated_price').single();
+    if (error) throw error;
+    if (data?.id !== change.itemId || data.item_name !== itemName || Number(data.quantity) !== quantity)
+      throw new Error('Item edit was not confirmed.');
+    return data;
+  }
   if (change.kind !== 'check' || typeof change.checked !== 'boolean') throw new Error('Invalid grocery change.');
   const { data, error } = await client.from('shopping_list_items').update({ checked: change.checked })
     .eq('id', change.itemId).eq('list_id', change.listId).eq('user_id', userId)
@@ -1895,6 +1919,7 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
   const isEstimating = false;
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [groceryEdit, setGroceryEdit] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
   const saveInProgress = useRef(false);
   const activeView = useRef(true);
@@ -1977,16 +2002,19 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
     setIsSaving(true);
     setSaveMessage('');
     try {
-      await persistGroceryChange(supabase, userId, change);
+      const saved = await persistGroceryChange(supabase, userId, change);
       if (!activeView.current) return;
       setShoppingLists(prev => change.kind === 'delete'
         ? prev.filter(list => list.id !== change.listId)
-        : prev.map(list => list.id !== change.listId ? list : {
-            ...list, estimatedItems: list.estimatedItems.map(item => item.id !== change.itemId
-              ? item : { ...item, checked: change.checked })
-          }));
+        : prev.map(list => list.id !== change.listId ? list : change.kind === 'rename'
+          ? { ...list, title: saved.title }
+          : { ...list, estimatedItems: list.estimatedItems.map(item => item.id !== change.itemId ? item
+              : change.kind === 'editItem' ? { ...item, item: saved.item_name, qty: Number(saved.quantity),
+                  checked: saved.checked, estimatedPrice: saved.estimated_price == null ? null : Number(saved.estimated_price) }
+              : { ...item, checked: saved.checked }).sort(compareGroceryItems) }));
+      if (change.kind === 'rename' || change.kind === 'editItem') setGroceryEdit(null);
       setPendingDelete(null);
-      setSaveMessage(change.kind === 'delete' ? 'List deleted.' : 'Item saved.');
+      setSaveMessage(change.kind === 'delete' ? 'List deleted.' : change.kind === 'rename' ? 'List title saved.' : 'Item saved.');
     } catch (error) {
       if (activeView.current) setSaveMessage('Could not save change: ' + error.message);
     } finally {
@@ -2038,6 +2066,8 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                 <div className="flex justify-between items-center">
                   <div>
                     <h5 className="font-bold text-sm">{list.title}</h5>
+                    <button type="button" aria-label={`Edit list title: ${list.title}`} disabled={isSaving}
+                      onClick={() => setGroceryEdit({ kind: 'rename', listId: list.id, title: list.title })} className="text-[10px] underline">Edit title</button>
                     <p className="text-[10px] opacity-60">{list.category} • {formatDate(list.date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -2046,6 +2076,22 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                     <button aria-label={`Delete list: ${list.title}`} disabled={isSaving || loading || !!loadError} onClick={() => setPendingDelete(list.id)} className="text-slate-600 hover:text-rose-400 p-1"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
+                {groceryEdit?.listId === list.id && <form onSubmit={event => { event.preventDefault(); handleChange(groceryEdit); }} className="rounded-xl border border-slate-700 p-3 space-y-2">
+                  <fieldset disabled={isSaving || loading || !!loadError} className="space-y-2">
+                    <label className="block text-xs">{groceryEdit.kind === 'rename' ? 'List title' : 'Item name'}
+                      <input aria-label={groceryEdit.kind === 'rename' ? 'Edit list title' : 'Edit item name'} required maxLength={groceryEdit.kind === 'rename' ? 200 : 300}
+                        value={groceryEdit.kind === 'rename' ? groceryEdit.title : groceryEdit.item}
+                        onChange={event => setGroceryEdit({ ...groceryEdit, [groceryEdit.kind === 'rename' ? 'title' : 'item']: event.target.value })}
+                        className="block w-full bg-slate-950 border border-slate-700 rounded-lg p-2 mt-1" />
+                    </label>
+                    {groceryEdit.kind === 'editItem' && <label className="block text-xs">Quantity
+                      <input aria-label="Edit item quantity" type="number" min="0.001" max="1000000" step="0.001" required value={groceryEdit.qty}
+                        onChange={event => setGroceryEdit({ ...groceryEdit, qty: event.target.value })} className="block w-full bg-slate-950 border border-slate-700 rounded-lg p-2 mt-1" />
+                    </label>}
+                    <div className="flex gap-3 text-xs"><button type="submit" className="underline">{isSaving ? 'Saving...' : 'Save changes'}</button>
+                      <button type="button" onClick={() => setGroceryEdit(null)} className="underline">Cancel edit</button></div>
+                  </fieldset>
+                </form>}
                 {pendingDelete === list.id && <div className="text-xs space-x-3" role="alert">
                   <span>Permanently delete this list and its items?</span>
                   <button disabled={isSaving} onClick={() => handleChange({ kind: 'delete', listId: list.id })} className="text-rose-400 underline">Delete permanently</button>
@@ -2059,9 +2105,13 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
                       <label className="flex items-center gap-2">
                         <input type="checkbox" checked={!!item.checked} disabled={isSaving || loading || !!loadError || !item.id}
                           onChange={event => handleChange({ kind: 'check', listId: list.id, itemId: item.id, checked: event.target.checked })} />
-                        <span className={item.checked ? 'line-through opacity-60' : ''}>{item.estimatedPrice == null ? item.item : `${item.qty} ${item.item}`}</span>
+                        <span className={item.checked ? 'line-through opacity-60' : ''}>{Number(item.qty) === 1 ? item.item : `${item.qty} × ${item.item}`}</span>
                       </label>
-                      <span className="font-mono opacity-80">{item.estimatedPrice == null ? '—' : formatCurrency(item.estimatedPrice)}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono opacity-80">{item.estimatedPrice == null ? '—' : formatCurrency(item.estimatedPrice)}</span>
+                        <button type="button" aria-label={`Edit item: ${item.item}`} disabled={isSaving || !item.id}
+                          onClick={() => setGroceryEdit({ kind: 'editItem', listId: list.id, itemId: item.id, item: item.item, qty: String(item.qty) })} className="underline">Edit</button>
+                      </div>
                     </div>
                   ))}
                 </div>
