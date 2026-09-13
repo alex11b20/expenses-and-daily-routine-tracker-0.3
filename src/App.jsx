@@ -1868,6 +1868,23 @@ async function loadSavedGroceries(client, userId, isCurrent) {
       estimatedItems: grouped.get(list.id).sort(compareGroceryItems) }));
 }
 
+async function saveGroceryList(client, userId, requestId, payload) {
+  if (!payload.title.trim() || payload.title.trim().length > 200) throw new Error('Enter a title of 1–200 characters.');
+  if (!payload.items.length || payload.items.length > 500 || payload.items.some(item => !item.trim() || item.trim().length > 300))
+    throw new Error('Use 1–500 items, each with 1–300 characters.');
+  const { data: { user }, error: authError } = await client.auth.getUser();
+  if (authError) throw authError;
+  if (!user || user.id !== userId) throw new Error('Please sign in again before saving a list.');
+  const { data, error } = await client.rpc('save_shopping_list_for_user', {
+    p_user_id: userId, p_id: requestId, p_title: payload.title.trim(), p_category: payload.category,
+    p_currency: payload.currency, p_items: payload.items.map(item => item.trim())
+  });
+  if (error) throw error;
+  if (data?.id !== requestId || !Array.isArray(data.shopping_list_items) || data.shopping_list_items.length !== payload.items.length)
+    throw new Error('The complete save was not confirmed. Retry this same list or reload to review it.');
+  return data;
+}
+
 async function persistGroceryChange(client, userId, change) {
   const { data: { user }, error: authError } = await client.auth.getUser();
   if (authError) throw authError;
@@ -1922,6 +1939,7 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
   const [groceryEdit, setGroceryEdit] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
   const saveInProgress = useRef(false);
+  const listRequestId = useRef(null);
   const activeView = useRef(true);
   useEffect(() => {
     activeView.current = true;
@@ -1950,41 +1968,23 @@ function ShoppingListsView({ theme, selectedCurrency, shoppingLists, setShopping
     setIsSaving(true);
     setSaveMessage('');
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!user || user.id !== userId) throw new Error('Please sign in again before saving a list.');
-      if (!activeView.current) return;
-
-      const { data: list, error: listError } = await supabase
-        .from('shopping_lists')
-        .insert({ title, category: selectedCategory, currency: selectedCurrency,
-          estimated_total: null, user_id: user.id })
-        .select('id, title, category, currency, created_at')
-        .single();
-      if (listError) throw listError;
-
-      const { data: savedItems, error: itemsError } = await supabase
-        .from('shopping_list_items')
-        .insert(items.map(item => ({ list_id: list.id, user_id: user.id,
-          item_name: item, quantity: 1, estimated_price: null, checked: false })))
-        .select('id, item_name, quantity, estimated_price, checked');
-      if (itemsError) {
-        const { error: cleanupError } = await supabase.from('shopping_lists')
-          .delete().eq('id', list.id).eq('user_id', user.id);
-        if (cleanupError) throw new Error('Items could not be saved. An empty list may remain; your text is still here. ' + itemsError.message);
-        throw itemsError;
-      }
+      if (!listRequestId.current) listRequestId.current = crypto.randomUUID();
+      const list = await saveGroceryList(supabase, userId, listRequestId.current, {
+        title, category: selectedCategory, currency: selectedCurrency, items
+      });
+      const savedItems = list.shopping_list_items;
 
       if (!activeView.current) return;
       setShoppingLists(prev => [{
         id: list.id, title: list.title, category: list.category,
         currency: list.currency, date: list.created_at?.split('T')[0],
-        totalEstimated: null,
+        totalEstimated: list.estimated_total == null ? null : Number(list.estimated_total),
         estimatedItems: savedItems.map(item => ({
           id: item.id, item: item.item_name, qty: item.quantity,
-          estimatedPrice: null, checked: item.checked
+          estimatedPrice: item.estimated_price == null ? null : Number(item.estimated_price), checked: item.checked
         })).sort(compareGroceryItems)
-      }, ...prev]);
+      }, ...prev.filter(existing => existing.id !== list.id)]);
+      listRequestId.current = null;
       setListTitle('');
       setRawText('');
       setSaveMessage('List saved.');
